@@ -1,27 +1,43 @@
--- name: GetAuthor :one
-SELECT * FROM authors
-WHERE id = $1 LIMIT 1;
+-- name: GetUserWallet :one
+SELECT * FROM user_wallet AS u WHERE u.id = $1 LIMIT 1;
 
--- name: ListAuthors :many
-SELECT * FROM authors
-ORDER BY name;
+-- name: ListUserWallets :many
+SELECT * FROM user_wallet ORDER BY id;
 
--- name: CreateAuthor :one
-INSERT INTO authors (
-  name, bio
+-- name: CreateUserWallet :one
+INSERT INTO user_wallet (
+  user_id, amount
 ) VALUES (
   $1, $2
 )
 RETURNING *;
 
--- name: UpdateAuthor :exec
-UPDATE authors
-  set name = $2,
-  bio = $3
-WHERE id = $1 RETURNING *;
+-- name: UpdateUserWalletAmount :exec
+UPDATE user_wallet
+  set amount = $2
+  WHERE id = $1 RETURNING *;
 
--- name: DeleteAuthor :exec
-DELETE FROM authors
+-- name: DeleteUserWallet :exec
+DELETE FROM user_wallet
+WHERE id = $1;
+
+-- name: GetUserWalletTransactions :one
+SELECT * FROM user_transactions WHERE user_wallet_id = $1;
+
+-- name: ListTransactions :many
+SELECT * FROM user_transactions ORDER BY id;
+
+-- name: CreateUserTransaction :one
+INSERT INTO user_transactions (
+  user_wallet_id, transaction_amount
+) VALUES (
+  $1, $2
+)
+RETURNING *;
+
+
+-- name: DeleteUserTransaction :exec
+DELETE FROM user_transactions
 WHERE id = $1;
 
 -- name: GetUsers :one

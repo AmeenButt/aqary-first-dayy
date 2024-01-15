@@ -11,34 +11,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createAuthor = `-- name: CreateAuthor :one
-INSERT INTO authors (
-  name, bio
-) VALUES (
-  $1, $2
-)
-RETURNING id, name, bio
-`
-
-type CreateAuthorParams struct {
-	Name string
-	Bio  pgtype.Text
-}
-
-func (q *Queries) CreateAuthor(ctx context.Context, arg CreateAuthorParams) (Author, error) {
-	row := q.db.QueryRow(ctx, createAuthor, arg.Name, arg.Bio)
-	var i Author
-	err := row.Scan(&i.ID, &i.Name, &i.Bio)
-	return i, err
-}
-
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   name, email, password
 ) VALUES (
   $1, $2, $3
 )
-RETURNING id, name, email, password, author_status, author_id
+RETURNING id, name, email, password
 `
 
 type CreateUserParams struct {
@@ -55,20 +34,50 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Name,
 		&i.Email,
 		&i.Password,
-		&i.AuthorStatus,
-		&i.AuthorID,
 	)
 	return i, err
 }
 
-const deleteAuthor = `-- name: DeleteAuthor :exec
-DELETE FROM authors
-WHERE id = $1
+const createUserTransaction = `-- name: CreateUserTransaction :one
+INSERT INTO user_transactions (
+  user_wallet_id, transaction_amount
+) VALUES (
+  $1, $2
+)
+RETURNING id, user_wallet_id, transaction_amount
 `
 
-func (q *Queries) DeleteAuthor(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deleteAuthor, id)
-	return err
+type CreateUserTransactionParams struct {
+	UserWalletID      pgtype.Int4
+	TransactionAmount pgtype.Text
+}
+
+func (q *Queries) CreateUserTransaction(ctx context.Context, arg CreateUserTransactionParams) (UserTransaction, error) {
+	row := q.db.QueryRow(ctx, createUserTransaction, arg.UserWalletID, arg.TransactionAmount)
+	var i UserTransaction
+	err := row.Scan(&i.ID, &i.UserWalletID, &i.TransactionAmount)
+	return i, err
+}
+
+const createUserWallet = `-- name: CreateUserWallet :one
+INSERT INTO user_wallet (
+  user_id, amount
+) VALUES (
+  $1, $2
+)
+RETURNING id, user_id, amount
+`
+
+type CreateUserWalletParams struct {
+	UserID pgtype.Int4
+	Amount pgtype.Float8
+}
+
+func (q *Queries) CreateUserWallet(ctx context.Context, arg CreateUserWalletParams) (UserWallet, error) {
+	row := q.db.QueryRow(ctx, createUserWallet, arg.UserID, arg.Amount)
+	var i UserWallet
+	err := row.Scan(&i.ID, &i.UserID, &i.Amount)
+	return i, err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
@@ -81,20 +90,50 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 	return err
 }
 
-const getAuthor = `-- name: GetAuthor :one
-SELECT id, name, bio FROM authors
-WHERE id = $1 LIMIT 1
+const deleteUserTransaction = `-- name: DeleteUserTransaction :exec
+DELETE FROM user_transactions
+WHERE id = $1
 `
 
-func (q *Queries) GetAuthor(ctx context.Context, id int64) (Author, error) {
-	row := q.db.QueryRow(ctx, getAuthor, id)
-	var i Author
-	err := row.Scan(&i.ID, &i.Name, &i.Bio)
+func (q *Queries) DeleteUserTransaction(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteUserTransaction, id)
+	return err
+}
+
+const deleteUserWallet = `-- name: DeleteUserWallet :exec
+DELETE FROM user_wallet
+WHERE id = $1
+`
+
+func (q *Queries) DeleteUserWallet(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteUserWallet, id)
+	return err
+}
+
+const getUserWallet = `-- name: GetUserWallet :one
+SELECT id, user_id, amount FROM user_wallet AS u WHERE u.id = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserWallet(ctx context.Context, id int64) (UserWallet, error) {
+	row := q.db.QueryRow(ctx, getUserWallet, id)
+	var i UserWallet
+	err := row.Scan(&i.ID, &i.UserID, &i.Amount)
+	return i, err
+}
+
+const getUserWalletTransactions = `-- name: GetUserWalletTransactions :one
+SELECT id, user_wallet_id, transaction_amount FROM user_transactions WHERE user_wallet_id = $1
+`
+
+func (q *Queries) GetUserWalletTransactions(ctx context.Context, userWalletID pgtype.Int4) (UserTransaction, error) {
+	row := q.db.QueryRow(ctx, getUserWalletTransactions, userWalletID)
+	var i UserTransaction
+	err := row.Scan(&i.ID, &i.UserWalletID, &i.TransactionAmount)
 	return i, err
 }
 
 const getUsers = `-- name: GetUsers :one
-SELECT id, name, email, password, author_status, author_id FROM users AS u WHERE u.id = $1 LIMIT 1
+SELECT id, name, email, password FROM users AS u WHERE u.id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUsers(ctx context.Context, id int64) (User, error) {
@@ -105,27 +144,48 @@ func (q *Queries) GetUsers(ctx context.Context, id int64) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Password,
-		&i.AuthorStatus,
-		&i.AuthorID,
 	)
 	return i, err
 }
 
-const listAuthors = `-- name: ListAuthors :many
-SELECT id, name, bio FROM authors
-ORDER BY name
+const listTransactions = `-- name: ListTransactions :many
+SELECT id, user_wallet_id, transaction_amount FROM user_transactions ORDER BY id
 `
 
-func (q *Queries) ListAuthors(ctx context.Context) ([]Author, error) {
-	rows, err := q.db.Query(ctx, listAuthors)
+func (q *Queries) ListTransactions(ctx context.Context) ([]UserTransaction, error) {
+	rows, err := q.db.Query(ctx, listTransactions)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Author
+	var items []UserTransaction
 	for rows.Next() {
-		var i Author
-		if err := rows.Scan(&i.ID, &i.Name, &i.Bio); err != nil {
+		var i UserTransaction
+		if err := rows.Scan(&i.ID, &i.UserWalletID, &i.TransactionAmount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserWallets = `-- name: ListUserWallets :many
+SELECT id, user_id, amount FROM user_wallet ORDER BY id
+`
+
+func (q *Queries) ListUserWallets(ctx context.Context) ([]UserWallet, error) {
+	rows, err := q.db.Query(ctx, listUserWallets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserWallet
+	for rows.Next() {
+		var i UserWallet
+		if err := rows.Scan(&i.ID, &i.UserID, &i.Amount); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -137,7 +197,7 @@ func (q *Queries) ListAuthors(ctx context.Context) ([]Author, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, email, password, author_status, author_id FROM users ORDER BY name
+SELECT id, name, email, password FROM users ORDER BY name
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -154,8 +214,6 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Name,
 			&i.Email,
 			&i.Password,
-			&i.AuthorStatus,
-			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}
@@ -167,30 +225,12 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
-const updateAuthor = `-- name: UpdateAuthor :exec
-UPDATE authors
-  set name = $2,
-  bio = $3
-WHERE id = $1 RETURNING id, name, bio
-`
-
-type UpdateAuthorParams struct {
-	ID   int64
-	Name string
-	Bio  pgtype.Text
-}
-
-func (q *Queries) UpdateAuthor(ctx context.Context, arg UpdateAuthorParams) error {
-	_, err := q.db.Exec(ctx, updateAuthor, arg.ID, arg.Name, arg.Bio)
-	return err
-}
-
 const updateUser = `-- name: UpdateUser :exec
 UPDATE users
   set name = $2,
   email = $3,
   password = $4
-WHERE id = $1 RETURNING id, name, email, password, author_status, author_id
+WHERE id = $1 RETURNING id, name, email, password
 `
 
 type UpdateUserParams struct {
@@ -207,5 +247,21 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 		arg.Email,
 		arg.Password,
 	)
+	return err
+}
+
+const updateUserWalletAmount = `-- name: UpdateUserWalletAmount :exec
+UPDATE user_wallet
+  set amount = $2
+  WHERE id = $1 RETURNING id, user_id, amount
+`
+
+type UpdateUserWalletAmountParams struct {
+	ID     int64
+	Amount pgtype.Float8
+}
+
+func (q *Queries) UpdateUserWalletAmount(ctx context.Context, arg UpdateUserWalletAmountParams) error {
+	_, err := q.db.Exec(ctx, updateUserWalletAmount, arg.ID, arg.Amount)
 	return err
 }

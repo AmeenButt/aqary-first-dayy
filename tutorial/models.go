@@ -8,19 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Author struct {
-	ID   int64
-	Name string
-	Bio  pgtype.Text
-}
-
 type User struct {
-	ID           int64
-	Name         string
-	Email        pgtype.Text
-	Password     pgtype.Text
-	AuthorStatus pgtype.Bool
-	AuthorID     pgtype.Int4
+	ID       int64
+	Name     string
+	Email    pgtype.Text
+	Password pgtype.Text
 }
 
 type UserTransaction struct {
@@ -32,5 +24,5 @@ type UserTransaction struct {
 type UserWallet struct {
 	ID     int64
 	UserID pgtype.Int4
-	Amount pgtype.Text
+	Amount pgtype.Float8
 }
