@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:latest
+    container_name: my-postgres-container
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+
+  go-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.go
+    container_name: my-go-server-container
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
