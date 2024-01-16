@@ -1,8 +1,16 @@
+-- SELECT * FROM user_wallet AS u WHERE u.user_id = $1 LIMIT 1;
 -- name: GetUserWallet :one
-SELECT * FROM user_wallet AS u WHERE u.id = $1 LIMIT 1;
+SELECT *
+FROM user_wallet u
+JOIN users us ON u.user_id = us.id
+WHERE u.user_id = $1
+LIMIT 1;
+
+-- name: GetUserWalletByID :one
+SELECT * FROM user_wallet u JOIN users us ON u.user_id = us.id WHERE u.id = $1 LIMIT 1;
 
 -- name: ListUserWallets :many
-SELECT * FROM user_wallet ORDER BY id;
+SELECT * FROM user_wallet u JOIN users us ON u.user_id = us.id ORDER BY u.id;
 
 -- name: CreateUserWallet :one
 INSERT INTO user_wallet (
@@ -21,27 +29,40 @@ UPDATE user_wallet
 DELETE FROM user_wallet
 WHERE id = $1;
 
--- name: GetUserWalletTransactions :one
-SELECT * FROM user_transactions WHERE user_wallet_id = $1;
+
+
+
+
+
+-- name: GetUserWalletTransactions :many
+SELECT * FROM user_transactions u JOIN user_wallet us ON u.user_wallet_id = us.id WHERE u.user_wallet_id = $1;
 
 -- name: ListTransactions :many
-SELECT * FROM user_transactions ORDER BY id;
+SELECT * FROM user_transactions u JOIN user_wallet us ON u.user_wallet_id = us.id ORDER BY u.id;
 
 -- name: CreateUserTransaction :one
 INSERT INTO user_transactions (
-  user_wallet_id, transaction_amount
+  user_wallet_id, transaction_amount, action
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 )
 RETURNING *;
-
 
 -- name: DeleteUserTransaction :exec
 DELETE FROM user_transactions
 WHERE id = $1;
 
--- name: GetUsers :one
-SELECT * FROM users AS u WHERE u.id = $1 LIMIT 1;
+
+
+
+
+
+
+-- name: GetUserByID :one
+SELECT * FROM users WHERE id = $1 LIMIT 1;
+
+-- name: GetUserByEmail :one
+SELECT * FROM users WHERE email = $1 LIMIT 1;
 
 -- name: ListUsers :many
 SELECT * FROM users ORDER BY name;

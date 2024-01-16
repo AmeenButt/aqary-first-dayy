@@ -1,12 +1,10 @@
 FROM golang:latest
 
-RUN mkdir /app
 WORKDIR /app
 
 COPY . .
 
-RUN go run main.go
+RUN go get
+RUN go build -o bin .
 
-EXPOSE 8080
-
-CMD ["./app"]
+ENTRYPOINT [ "/app/bin" ]

@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   postgres:
     image: postgres:latest
@@ -6,16 +7,24 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: mydb
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: sqlc-practice
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    networks:
+      - my-network
 
   go-server:
     build:
       context: .
-      dockerfile: Dockerfile.go
+      dockerfile: Dockerfile
     container_name: my-go-server-container
     ports:
-      - "8080:8080"
+      - "5000:5000"
     depends_on:
       - postgres
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge

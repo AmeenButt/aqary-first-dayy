@@ -4,10 +4,10 @@ import (
 	"context"
 	"os"
 
+	"assesment.sqlc.dev/app/config"
+	"assesment.sqlc.dev/app/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"tutorial.sqlc.dev/app/config"
-	"tutorial.sqlc.dev/app/handlers"
 )
 
 func main() {
@@ -22,12 +22,11 @@ func main() {
 	// initialing database
 	conn := config.Config(ctx)
 
-	// Creating user handler object
-	userHanlder := handlers.CreateUserHanlder(conn)
-
 	// User Routes
-	server.POST("/user/create", userHanlder.CreateUser)
-	server.GET("/user/get", userHanlder.GetUser)
+	routes.RegisterUserRoutes(server, conn)
+
+	// User wallet Routes
+	routes.RegisterUserWalletRoutes(server, conn)
 
 	// Starting server
 	server.Run(os.Getenv("PORT"))

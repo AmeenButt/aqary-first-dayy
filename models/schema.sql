@@ -14,7 +14,8 @@ CREATE TABLE user_wallet (
 
 CREATE TABLE user_transactions (
   id   BIGSERIAL PRIMARY KEY,
+  action text not null,
   user_wallet_id int,
-  transaction_amount text,
+  transaction_amount float,
   FOREIGN KEY (user_wallet_id) REFERENCES user_wallet(id)
 );

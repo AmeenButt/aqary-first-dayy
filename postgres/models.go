@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.25.0
 
-package tutorial
+package postgres
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
@@ -17,8 +17,9 @@ type User struct {
 
 type UserTransaction struct {
 	ID                int64
+	Action            string
 	UserWalletID      pgtype.Int4
-	TransactionAmount pgtype.Text
+	TransactionAmount pgtype.Float8
 }
 
 type UserWallet struct {
