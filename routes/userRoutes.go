@@ -10,10 +10,11 @@ import (
 func RegisterUserRoutes(router *gin.Engine, conn *pgx.Conn) {
 	server := router.Group("/users")
 	{
-		userHanlder := handlers.CreateUserHanlder(conn)
-		server.POST("/create", userHanlder.CreateUser)
-		server.POST("/sign-in", userHanlder.SignIn)
-		server.GET("/get", userHanlder.GetUser)
-		server.GET("/get-all-users", middleware.AuthMiddleware(), userHanlder.GetAllUser)
+		UserHanlder := handlers.CreateUserHanlder(conn)
+		server.POST("/create", UserHanlder.CreateUser)
+		server.POST("/sign-in", UserHanlder.SignIn)
+		server.GET("/get", UserHanlder.GetUser)
+		server.GET("/get-all-users", middleware.AuthMiddleware(), UserHanlder.GetAllUser)
+		server.POST("/upload-profile", middleware.AuthMiddleware(), UserHanlder.UploadProfilePicture)
 	}
 }

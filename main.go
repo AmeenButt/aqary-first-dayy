@@ -22,6 +22,10 @@ func main() {
 	// initialing database
 	conn := config.Config(ctx)
 
+	uploadsFolderPath := "uploads"
+
+	// Serve the uploads folder statically
+	server.Static("/uploads", uploadsFolderPath)
 	// User Routes
 	routes.RegisterUserRoutes(server, conn)
 

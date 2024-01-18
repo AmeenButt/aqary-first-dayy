@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"assesment.sqlc.dev/app/models"
 	"assesment.sqlc.dev/app/postgres"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -60,4 +61,38 @@ func ParseToken(tokenString string) (jwt.MapClaims, error) {
 	}
 
 	return nil, fmt.Errorf("Token is not valid")
+}
+
+func ParseUserTransactionData(foundUserTransactions []postgres.GetUserWalletTransactionsRow) ([]models.UserTransaction, error) {
+	var result []models.UserTransaction
+	if len(foundUserTransactions) < 1 {
+		return nil, fmt.Errorf("No rows to parse")
+	}
+	println(len(foundUserTransactions))
+	for i := 0; i < len(foundUserTransactions); i++ {
+		var transaction models.UserTransaction
+		transaction.ID = int32(foundUserTransactions[i].ID)
+		transaction.TransactionAmount = foundUserTransactions[i].TransactionAmount.Float64
+		transaction.UserWalletID = foundUserTransactions[i].UserWalletID.Int32
+		transaction.UserWalletData.ID = int32(foundUserTransactions[i].ID_2)
+		transaction.UserWalletData.Amount = foundUserTransactions[i].Amount.Float64
+		transaction.UserWalletData.User.ID = foundUserTransactions[i].ID_3
+		transaction.UserWalletData.User.Email = foundUserTransactions[i].Email.String
+		transaction.UserWalletData.User.Name = foundUserTransactions[i].Name
+		transaction.UserWalletData.User.Password = foundUserTransactions[i].Password.String
+
+		result = append(result, transaction)
+	}
+	return result, nil
+}
+func ParseUserWalletData(foundWallet postgres.GetUserWalletRow) interface{} {
+	var result models.UserWallet
+	result.ID = foundWallet.UserID.Int32
+	result.Amount = foundWallet.Amount.Float64
+	result.UserID = foundWallet.UserID.Int32
+	result.User.ID = foundWallet.ID_2
+	result.User.Name = foundWallet.Name
+	result.User.Email = foundWallet.Email.String
+	result.User.Password = foundWallet.Password.String
+	return result
 }

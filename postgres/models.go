@@ -9,10 +9,13 @@ import (
 )
 
 type User struct {
-	ID       int64
-	Name     string
-	Email    pgtype.Text
-	Password pgtype.Text
+	ID             int64
+	Name           string
+	Email          pgtype.Text
+	Password       pgtype.Text
+	ProfilePicture pgtype.Text
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
 }
 
 type UserTransaction struct {
@@ -20,10 +23,14 @@ type UserTransaction struct {
 	Action            string
 	UserWalletID      pgtype.Int4
 	TransactionAmount pgtype.Float8
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
 }
 
 type UserWallet struct {
-	ID     int64
-	UserID pgtype.Int4
-	Amount pgtype.Float8
+	ID        int64
+	UserID    pgtype.Int4
+	Amount    pgtype.Float8
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 }
