@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"assesment.sqlc.dev/app/utils"
@@ -11,6 +12,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.GetHeader("Authorization")
 		if tokenString == "" {
+
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
@@ -18,6 +20,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		claims, err := utils.ParseToken(tokenString)
 		if err != nil {
+			fmt.Println(tokenString)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return

@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"assesment.sqlc.dev/app/models"
 	"assesment.sqlc.dev/app/postgres"
 	"assesment.sqlc.dev/app/utils"
-	"github.com/gin-gonic/gin"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
@@ -109,6 +110,7 @@ func (u *User) GetAllUser(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User Found Sucessfully", "result": foundUser})
 }
+
 func (u *User) UploadProfilePicture(c *gin.Context) {
 	file, header, err := c.Request.FormFile("image")
 	if err != nil {
@@ -119,12 +121,18 @@ func (u *User) UploadProfilePicture(c *gin.Context) {
 	userID := c.Request.FormValue("id")
 
 	defer file.Close()
+	currentTime := time.Now().UTC()
 
+	// Format the time in UTC layout
+	utcFormat := "2006-01-02T15:04:05.999Z07:00"
+	utcTimeString := currentTime.Format(utcFormat)
+	replacedString := strings.NewReplacer(".", "_", ",", "_", ";", "_", " ", "_", ":", "_").Replace(utcTimeString)
 	// Create a unique filename for the uploaded file
-	filename := "uploads/" + header.Filename
+	filename := "uploads/" + replacedString + header.Filename
 
 	out, err := os.Create(filename)
 	if err != nil {
+		fmt.Printf("%v", err)
 		c.JSON(500, gin.H{"error": "Internal server error"})
 		return
 	}
@@ -136,11 +144,6 @@ func (u *User) UploadProfilePicture(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Internat server error"})
 		return
 	}
-	currentTime := time.Now().UTC()
-
-	// Format the time in UTC layout
-	utcFormat := "2006-01-02T15:04:05.999Z07:00"
-	utcTimeString := currentTime.Format(utcFormat)
 	id, err := strconv.Atoi(userID)
 	filepath := "uploads/" + utcTimeString + header.Filename
 	if id != 0 {

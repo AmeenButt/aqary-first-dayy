@@ -73,13 +73,19 @@ func ParseUserTransactionData(foundUserTransactions []postgres.GetUserWalletTran
 		var transaction models.UserTransaction
 		transaction.ID = int32(foundUserTransactions[i].ID)
 		transaction.TransactionAmount = foundUserTransactions[i].TransactionAmount.Float64
+		transaction.CreatedAt = foundUserTransactions[i].CreatedAt.Time.GoString()
+		transaction.UpdatedAt = foundUserTransactions[i].UpdatedAt.Time.GoString()
 		transaction.UserWalletID = foundUserTransactions[i].UserWalletID.Int32
 		transaction.UserWalletData.ID = int32(foundUserTransactions[i].ID_2)
 		transaction.UserWalletData.Amount = foundUserTransactions[i].Amount.Float64
+		transaction.UserWalletData.CreatedAt = foundUserTransactions[i].CreatedAt_2.Time.GoString()
+		transaction.UserWalletData.UpdatedAt = foundUserTransactions[i].UpdatedAt_2.Time.GoString()
 		transaction.UserWalletData.User.ID = foundUserTransactions[i].ID_3
 		transaction.UserWalletData.User.Email = foundUserTransactions[i].Email.String
 		transaction.UserWalletData.User.Name = foundUserTransactions[i].Name
 		transaction.UserWalletData.User.Password = foundUserTransactions[i].Password.String
+		transaction.UserWalletData.User.CreatedAt = foundUserTransactions[i].CreatedAt_3.Time.GoString()
+		transaction.UserWalletData.User.UpdatedAt = foundUserTransactions[i].UpdatedAt_3.Time.GoString()
 
 		result = append(result, transaction)
 	}

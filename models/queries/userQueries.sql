@@ -21,7 +21,8 @@ UPDATE users
   set name = $2,
   email = $3,
   password = $4,
-  profile_picture = $5
+  profile_picture = $5,
+  updated_at = NOW()
 WHERE id = $1 RETURNING *;
 
 -- name: DeleteUser :exec
@@ -30,5 +31,6 @@ WHERE id = $1;
 
 -- name: UpdateUserPicture :exec
 UPDATE users
-  set profile_picture = $2
+  set profile_picture = $2,
+  updated_at = NOW()
 WHERE id = $1 RETURNING *;

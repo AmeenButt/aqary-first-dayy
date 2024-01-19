@@ -27,3 +27,14 @@ CREATE TABLE IF NOT EXISTS user_transactions (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS properties (
+  id   BIGSERIAL PRIMARY KEY,
+  sizeInSqFeet int,
+  location text,
+  demand text,
+  status text,
+  user_id int,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
