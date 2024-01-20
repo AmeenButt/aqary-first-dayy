@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 
 	"assesment.sqlc.dev/app/config"
@@ -22,19 +23,23 @@ func main() {
 	// initialing database
 	conn := config.Config(ctx)
 
+	// Path to uploads folder
 	uploadsFolderPath := "uploads"
 
 	// Serve the uploads folder statically
 	server.Static("/uploads", uploadsFolderPath)
 
-	// Property Route
-	routes.RegisterPropertiesRoutes(server, conn)
+	// Default route
+	server.GET("/", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"Message": "Server is running"}) })
 
 	// User Routes
 	routes.RegisterUserRoutes(server, conn)
 
 	// User wallet Routes
 	routes.RegisterUserWalletRoutes(server, conn)
+
+	// Property Route
+	routes.RegisterPropertiesRoutes(server, conn)
 
 	// Starting server
 	server.Run(os.Getenv("PORT"))
