@@ -1,0 +1,4 @@
+scoop install migrate
+migrate create -ext sql -dir database/migration/ -seq init_mg
+migrate -path database/migration/ -database "postgresql://postgres:admin@localhost:5432/sqlc-practice?sslmode=disable" up
+migrate -path database/migration/ -database "postgresql://postgres:admin@localhost:5432/sqlc-practice?sslmode=disable" down

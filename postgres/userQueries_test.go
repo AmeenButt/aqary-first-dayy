@@ -63,7 +63,7 @@ func TestUpdateUser(t *testing.T) {
 	conn := config.TestConfig(context.Background())
 	defer conn.Close(context.Background())
 	queries := New(conn)
-	err := queries.UpdateUser(context.Background(), UpdateUserParams{
+	_, err := queries.UpdateUser(context.Background(), UpdateUserParams{
 		ID:   int64(u_id),
 		Name: "test_update",
 	})

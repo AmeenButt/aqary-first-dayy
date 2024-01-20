@@ -12,7 +12,7 @@ import (
 )
 
 const deleteProperty = `-- name: DeleteProperty :one
-DELETE FROM properties WHERE id=$1 RETURNING id, sizeinsqfeet, location, demand, status, user_id, created_at, updated_at
+DELETE FROM properties WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
 `
 
 func (q *Queries) DeleteProperty(ctx context.Context, id int64) (Property, error) {
@@ -22,6 +22,7 @@ func (q *Queries) DeleteProperty(ctx context.Context, id int64) (Property, error
 		&i.ID,
 		&i.Sizeinsqfeet,
 		&i.Location,
+		&i.Images,
 		&i.Demand,
 		&i.Status,
 		&i.UserID,
@@ -32,25 +33,27 @@ func (q *Queries) DeleteProperty(ctx context.Context, id int64) (Property, error
 }
 
 const getPropertyByID = `-- name: GetPropertyByID :one
-SELECT p.id, p.sizeinsqfeet, p.location, p.demand, p.status, p.user_id, p.created_at, p.updated_at, us.id, us.name, us.email, us.password, us.profile_picture, us.created_at, us.updated_at FROM properties p JOIN users us ON p.user_id = us.id WHERE p.id = $1
+SELECT p.id, p.sizeinsqfeet, p.location, p.images, p.demand, p.status, p.user_id, p.created_at, p.updated_at, us.id, us.name, us.email, us.password, us.profile_picture, us.otp, us.created_at, us.updated_at FROM properties p JOIN users us ON p.user_id = us.id WHERE p.id = $1
 `
 
 type GetPropertyByIDRow struct {
-	ID             int64            `json:"id"`
-	Sizeinsqfeet   pgtype.Int4      `json:"sizeinsqfeet"`
-	Location       pgtype.Text      `json:"location"`
-	Demand         pgtype.Text      `json:"demand"`
-	Status         pgtype.Text      `json:"status"`
-	UserID         pgtype.Int4      `json:"user_id"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
-	ID_2           int64            `json:"id_2"`
-	Name           string           `json:"name"`
-	Email          pgtype.Text      `json:"email"`
-	Password       pgtype.Text      `json:"password"`
-	ProfilePicture pgtype.Text      `json:"profile_picture"`
-	CreatedAt_2    pgtype.Timestamp `json:"created_at_2"`
-	UpdatedAt_2    pgtype.Timestamp `json:"updated_at_2"`
+	ID             int64
+	Sizeinsqfeet   pgtype.Int4
+	Location       pgtype.Text
+	Images         []string
+	Demand         pgtype.Text
+	Status         pgtype.Text
+	UserID         pgtype.Int4
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	ID_2           int64
+	Name           string
+	Email          pgtype.Text
+	Password       pgtype.Text
+	ProfilePicture pgtype.Text
+	Otp            pgtype.Int4
+	CreatedAt_2    pgtype.Timestamp
+	UpdatedAt_2    pgtype.Timestamp
 }
 
 func (q *Queries) GetPropertyByID(ctx context.Context, id int64) (GetPropertyByIDRow, error) {
@@ -60,6 +63,7 @@ func (q *Queries) GetPropertyByID(ctx context.Context, id int64) (GetPropertyByI
 		&i.ID,
 		&i.Sizeinsqfeet,
 		&i.Location,
+		&i.Images,
 		&i.Demand,
 		&i.Status,
 		&i.UserID,
@@ -70,6 +74,7 @@ func (q *Queries) GetPropertyByID(ctx context.Context, id int64) (GetPropertyByI
 		&i.Email,
 		&i.Password,
 		&i.ProfilePicture,
+		&i.Otp,
 		&i.CreatedAt_2,
 		&i.UpdatedAt_2,
 	)
@@ -77,25 +82,27 @@ func (q *Queries) GetPropertyByID(ctx context.Context, id int64) (GetPropertyByI
 }
 
 const getPropertyByUserID = `-- name: GetPropertyByUserID :many
-SELECT p.id, p.sizeinsqfeet, p.location, p.demand, p.status, p.user_id, p.created_at, p.updated_at, us.id, us.name, us.email, us.password, us.profile_picture, us.created_at, us.updated_at FROM properties p JOIN users us ON p.user_id = us.id WHERE p.user_id = $1
+SELECT p.id, p.sizeinsqfeet, p.location, p.images, p.demand, p.status, p.user_id, p.created_at, p.updated_at, us.id, us.name, us.email, us.password, us.profile_picture, us.otp, us.created_at, us.updated_at FROM properties p JOIN users us ON p.user_id = us.id WHERE p.user_id = $1
 `
 
 type GetPropertyByUserIDRow struct {
-	ID             int64            `json:"id"`
-	Sizeinsqfeet   pgtype.Int4      `json:"sizeinsqfeet"`
-	Location       pgtype.Text      `json:"location"`
-	Demand         pgtype.Text      `json:"demand"`
-	Status         pgtype.Text      `json:"status"`
-	UserID         pgtype.Int4      `json:"user_id"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
-	ID_2           int64            `json:"id_2"`
-	Name           string           `json:"name"`
-	Email          pgtype.Text      `json:"email"`
-	Password       pgtype.Text      `json:"password"`
-	ProfilePicture pgtype.Text      `json:"profile_picture"`
-	CreatedAt_2    pgtype.Timestamp `json:"created_at_2"`
-	UpdatedAt_2    pgtype.Timestamp `json:"updated_at_2"`
+	ID             int64
+	Sizeinsqfeet   pgtype.Int4
+	Location       pgtype.Text
+	Images         []string
+	Demand         pgtype.Text
+	Status         pgtype.Text
+	UserID         pgtype.Int4
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	ID_2           int64
+	Name           string
+	Email          pgtype.Text
+	Password       pgtype.Text
+	ProfilePicture pgtype.Text
+	Otp            pgtype.Int4
+	CreatedAt_2    pgtype.Timestamp
+	UpdatedAt_2    pgtype.Timestamp
 }
 
 func (q *Queries) GetPropertyByUserID(ctx context.Context, userID pgtype.Int4) ([]GetPropertyByUserIDRow, error) {
@@ -104,13 +111,14 @@ func (q *Queries) GetPropertyByUserID(ctx context.Context, userID pgtype.Int4) (
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetPropertyByUserIDRow{}
+	var items []GetPropertyByUserIDRow
 	for rows.Next() {
 		var i GetPropertyByUserIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Sizeinsqfeet,
 			&i.Location,
+			&i.Images,
 			&i.Demand,
 			&i.Status,
 			&i.UserID,
@@ -121,6 +129,7 @@ func (q *Queries) GetPropertyByUserID(ctx context.Context, userID pgtype.Int4) (
 			&i.Email,
 			&i.Password,
 			&i.ProfilePicture,
+			&i.Otp,
 			&i.CreatedAt_2,
 			&i.UpdatedAt_2,
 		); err != nil {
@@ -135,15 +144,15 @@ func (q *Queries) GetPropertyByUserID(ctx context.Context, userID pgtype.Int4) (
 }
 
 const insertProperty = `-- name: InsertProperty :one
-INSERT INTO properties (sizeInSqFeet, location,demand,status,user_id) VALUES ($1,$2,$3,$4, $5) RETURNING id, sizeinsqfeet, location, demand, status, user_id, created_at, updated_at
+INSERT INTO properties (sizeInSqFeet, location,demand,user_id,images) VALUES ($1,$2,$3,$4,$5) RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
 `
 
 type InsertPropertyParams struct {
-	Sizeinsqfeet pgtype.Int4 `json:"sizeinsqfeet"`
-	Location     pgtype.Text `json:"location"`
-	Demand       pgtype.Text `json:"demand"`
-	Status       pgtype.Text `json:"status"`
-	UserID       pgtype.Int4 `json:"user_id"`
+	Sizeinsqfeet pgtype.Int4
+	Location     pgtype.Text
+	Demand       pgtype.Text
+	UserID       pgtype.Int4
+	Images       []string
 }
 
 func (q *Queries) InsertProperty(ctx context.Context, arg InsertPropertyParams) (Property, error) {
@@ -151,14 +160,15 @@ func (q *Queries) InsertProperty(ctx context.Context, arg InsertPropertyParams) 
 		arg.Sizeinsqfeet,
 		arg.Location,
 		arg.Demand,
-		arg.Status,
 		arg.UserID,
+		arg.Images,
 	)
 	var i Property
 	err := row.Scan(
 		&i.ID,
 		&i.Sizeinsqfeet,
 		&i.Location,
+		&i.Images,
 		&i.Demand,
 		&i.Status,
 		&i.UserID,
@@ -169,16 +179,17 @@ func (q *Queries) InsertProperty(ctx context.Context, arg InsertPropertyParams) 
 }
 
 const updateProperty = `-- name: UpdateProperty :one
-UPDATE properties SET sizeInSqFeet =$2 , location = $3 ,demand = $4 ,status=$5 
-WHERE id=$1 RETURNING id, sizeinsqfeet, location, demand, status, user_id, created_at, updated_at
+UPDATE properties SET sizeInSqFeet =$2 , location = $3 ,demand = $4 ,status=$5 , images=$6
+WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
 `
 
 type UpdatePropertyParams struct {
-	ID           int64       `json:"id"`
-	Sizeinsqfeet pgtype.Int4 `json:"sizeinsqfeet"`
-	Location     pgtype.Text `json:"location"`
-	Demand       pgtype.Text `json:"demand"`
-	Status       pgtype.Text `json:"status"`
+	ID           int64
+	Sizeinsqfeet pgtype.Int4
+	Location     pgtype.Text
+	Demand       pgtype.Text
+	Status       pgtype.Text
+	Images       []string
 }
 
 func (q *Queries) UpdateProperty(ctx context.Context, arg UpdatePropertyParams) (Property, error) {
@@ -188,12 +199,14 @@ func (q *Queries) UpdateProperty(ctx context.Context, arg UpdatePropertyParams) 
 		arg.Location,
 		arg.Demand,
 		arg.Status,
+		arg.Images,
 	)
 	var i Property
 	err := row.Scan(
 		&i.ID,
 		&i.Sizeinsqfeet,
 		&i.Location,
+		&i.Images,
 		&i.Demand,
 		&i.Status,
 		&i.UserID,
@@ -205,12 +218,12 @@ func (q *Queries) UpdateProperty(ctx context.Context, arg UpdatePropertyParams) 
 
 const updateStatus = `-- name: UpdateStatus :one
 UPDATE properties SET status =$2  
-WHERE id=$1 RETURNING id, sizeinsqfeet, location, demand, status, user_id, created_at, updated_at
+WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
 `
 
 type UpdateStatusParams struct {
-	ID     int64       `json:"id"`
-	Status pgtype.Text `json:"status"`
+	ID     int64
+	Status pgtype.Text
 }
 
 func (q *Queries) UpdateStatus(ctx context.Context, arg UpdateStatusParams) (Property, error) {
@@ -220,6 +233,7 @@ func (q *Queries) UpdateStatus(ctx context.Context, arg UpdateStatusParams) (Pro
 		&i.ID,
 		&i.Sizeinsqfeet,
 		&i.Location,
+		&i.Images,
 		&i.Demand,
 		&i.Status,
 		&i.UserID,

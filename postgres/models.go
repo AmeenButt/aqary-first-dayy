@@ -9,39 +9,41 @@ import (
 )
 
 type Property struct {
-	ID           int64            `json:"id"`
-	Sizeinsqfeet pgtype.Int4      `json:"sizeinsqfeet"`
-	Location     pgtype.Text      `json:"location"`
-	Demand       pgtype.Text      `json:"demand"`
-	Status       pgtype.Text      `json:"status"`
-	UserID       pgtype.Int4      `json:"user_id"`
-	CreatedAt    pgtype.Timestamp `json:"created_at"`
-	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+	ID           int64
+	Sizeinsqfeet pgtype.Int4
+	Location     pgtype.Text
+	Images       []string
+	Demand       pgtype.Text
+	Status       pgtype.Text
+	UserID       pgtype.Int4
+	CreatedAt    pgtype.Timestamp
+	UpdatedAt    pgtype.Timestamp
 }
 
 type User struct {
-	ID             int64            `json:"id"`
-	Name           string           `json:"name"`
-	Email          pgtype.Text      `json:"email"`
-	Password       pgtype.Text      `json:"password"`
-	ProfilePicture pgtype.Text      `json:"profile_picture"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+	ID             int64
+	Name           string
+	Email          pgtype.Text
+	Password       pgtype.Text
+	ProfilePicture pgtype.Text
+	Otp            pgtype.Int4
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
 }
 
 type UserTransaction struct {
-	ID                int64            `json:"id"`
-	Action            string           `json:"action"`
-	UserWalletID      pgtype.Int4      `json:"user_wallet_id"`
-	TransactionAmount pgtype.Float8    `json:"transaction_amount"`
-	CreatedAt         pgtype.Timestamp `json:"created_at"`
-	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	ID                int64
+	Action            string
+	UserWalletID      pgtype.Int4
+	TransactionAmount pgtype.Float8
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
 }
 
 type UserWallet struct {
-	ID        int64            `json:"id"`
-	UserID    pgtype.Int4      `json:"user_id"`
-	Amount    pgtype.Float8    `json:"amount"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	ID        int64
+	UserID    pgtype.Int4
+	Amount    pgtype.Float8
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 }

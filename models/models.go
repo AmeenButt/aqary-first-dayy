@@ -28,12 +28,14 @@ type UserTransaction struct {
 	UpdatedAt         string     `json:"updated_at"`
 }
 type Property struct {
-	ID           int64  `json:"id"`
-	UserId       int64  `json:"user_id"`
-	SizeInSqFeet int64  `json:"sizeInSqFeet"`
-	Location     string `json:"location"`
-	Demand       string `json:"demand"`
-	Status       string `json:"status"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
+	ID           int64     `json:"id"`
+	UserId       int64     `json:"user_id"`
+	SizeInSqFeet int64     `json:"sizeInSqFeet"`
+	Location     string    `json:"location"`
+	Demand       string    `json:"demand"`
+	Status       string    `json:"status"`
+	Images       []string  `json:"images"`
+	User         UserModel `json:"user"`
+	CreatedAt    string    `json:"created_at"`
+	UpdatedAt    string    `json:"updated_at"`
 }

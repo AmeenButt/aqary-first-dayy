@@ -21,8 +21,8 @@ RETURNING id, user_id, amount, created_at, updated_at
 `
 
 type CreateUserWalletParams struct {
-	UserID pgtype.Int4   `json:"user_id"`
-	Amount pgtype.Float8 `json:"amount"`
+	UserID pgtype.Int4
+	Amount pgtype.Float8
 }
 
 func (q *Queries) CreateUserWallet(ctx context.Context, arg CreateUserWalletParams) (UserWallet, error) {
@@ -49,7 +49,7 @@ func (q *Queries) DeleteUserWallet(ctx context.Context, id int64) error {
 }
 
 const getUserWallet = `-- name: GetUserWallet :one
-SELECT u.id, user_id, amount, u.created_at, u.updated_at, us.id, name, email, password, profile_picture, us.created_at, us.updated_at
+SELECT u.id, user_id, amount, u.created_at, u.updated_at, us.id, name, email, password, profile_picture, otp, us.created_at, us.updated_at
 FROM user_wallet u
 JOIN users us ON u.user_id = us.id
 WHERE u.user_id = $1
@@ -57,18 +57,19 @@ LIMIT 1
 `
 
 type GetUserWalletRow struct {
-	ID             int64            `json:"id"`
-	UserID         pgtype.Int4      `json:"user_id"`
-	Amount         pgtype.Float8    `json:"amount"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
-	ID_2           int64            `json:"id_2"`
-	Name           string           `json:"name"`
-	Email          pgtype.Text      `json:"email"`
-	Password       pgtype.Text      `json:"password"`
-	ProfilePicture pgtype.Text      `json:"profile_picture"`
-	CreatedAt_2    pgtype.Timestamp `json:"created_at_2"`
-	UpdatedAt_2    pgtype.Timestamp `json:"updated_at_2"`
+	ID             int64
+	UserID         pgtype.Int4
+	Amount         pgtype.Float8
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	ID_2           int64
+	Name           string
+	Email          pgtype.Text
+	Password       pgtype.Text
+	ProfilePicture pgtype.Text
+	Otp            pgtype.Int4
+	CreatedAt_2    pgtype.Timestamp
+	UpdatedAt_2    pgtype.Timestamp
 }
 
 func (q *Queries) GetUserWallet(ctx context.Context, userID pgtype.Int4) (GetUserWalletRow, error) {
@@ -85,6 +86,7 @@ func (q *Queries) GetUserWallet(ctx context.Context, userID pgtype.Int4) (GetUse
 		&i.Email,
 		&i.Password,
 		&i.ProfilePicture,
+		&i.Otp,
 		&i.CreatedAt_2,
 		&i.UpdatedAt_2,
 	)
@@ -92,22 +94,23 @@ func (q *Queries) GetUserWallet(ctx context.Context, userID pgtype.Int4) (GetUse
 }
 
 const getUserWalletByID = `-- name: GetUserWalletByID :one
-SELECT u.id, user_id, amount, u.created_at, u.updated_at, us.id, name, email, password, profile_picture, us.created_at, us.updated_at FROM user_wallet u JOIN users us ON u.user_id = us.id WHERE u.id = $1 LIMIT 1
+SELECT u.id, user_id, amount, u.created_at, u.updated_at, us.id, name, email, password, profile_picture, otp, us.created_at, us.updated_at FROM user_wallet u JOIN users us ON u.user_id = us.id WHERE u.id = $1 LIMIT 1
 `
 
 type GetUserWalletByIDRow struct {
-	ID             int64            `json:"id"`
-	UserID         pgtype.Int4      `json:"user_id"`
-	Amount         pgtype.Float8    `json:"amount"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
-	ID_2           int64            `json:"id_2"`
-	Name           string           `json:"name"`
-	Email          pgtype.Text      `json:"email"`
-	Password       pgtype.Text      `json:"password"`
-	ProfilePicture pgtype.Text      `json:"profile_picture"`
-	CreatedAt_2    pgtype.Timestamp `json:"created_at_2"`
-	UpdatedAt_2    pgtype.Timestamp `json:"updated_at_2"`
+	ID             int64
+	UserID         pgtype.Int4
+	Amount         pgtype.Float8
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	ID_2           int64
+	Name           string
+	Email          pgtype.Text
+	Password       pgtype.Text
+	ProfilePicture pgtype.Text
+	Otp            pgtype.Int4
+	CreatedAt_2    pgtype.Timestamp
+	UpdatedAt_2    pgtype.Timestamp
 }
 
 func (q *Queries) GetUserWalletByID(ctx context.Context, id int64) (GetUserWalletByIDRow, error) {
@@ -124,6 +127,7 @@ func (q *Queries) GetUserWalletByID(ctx context.Context, id int64) (GetUserWalle
 		&i.Email,
 		&i.Password,
 		&i.ProfilePicture,
+		&i.Otp,
 		&i.CreatedAt_2,
 		&i.UpdatedAt_2,
 	)
@@ -131,22 +135,23 @@ func (q *Queries) GetUserWalletByID(ctx context.Context, id int64) (GetUserWalle
 }
 
 const listUserWallets = `-- name: ListUserWallets :many
-SELECT u.id, user_id, amount, u.created_at, u.updated_at, us.id, name, email, password, profile_picture, us.created_at, us.updated_at FROM user_wallet u JOIN users us ON u.user_id = us.id ORDER BY u.id
+SELECT u.id, user_id, amount, u.created_at, u.updated_at, us.id, name, email, password, profile_picture, otp, us.created_at, us.updated_at FROM user_wallet u JOIN users us ON u.user_id = us.id ORDER BY u.id
 `
 
 type ListUserWalletsRow struct {
-	ID             int64            `json:"id"`
-	UserID         pgtype.Int4      `json:"user_id"`
-	Amount         pgtype.Float8    `json:"amount"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
-	ID_2           int64            `json:"id_2"`
-	Name           string           `json:"name"`
-	Email          pgtype.Text      `json:"email"`
-	Password       pgtype.Text      `json:"password"`
-	ProfilePicture pgtype.Text      `json:"profile_picture"`
-	CreatedAt_2    pgtype.Timestamp `json:"created_at_2"`
-	UpdatedAt_2    pgtype.Timestamp `json:"updated_at_2"`
+	ID             int64
+	UserID         pgtype.Int4
+	Amount         pgtype.Float8
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	ID_2           int64
+	Name           string
+	Email          pgtype.Text
+	Password       pgtype.Text
+	ProfilePicture pgtype.Text
+	Otp            pgtype.Int4
+	CreatedAt_2    pgtype.Timestamp
+	UpdatedAt_2    pgtype.Timestamp
 }
 
 func (q *Queries) ListUserWallets(ctx context.Context) ([]ListUserWalletsRow, error) {
@@ -155,7 +160,7 @@ func (q *Queries) ListUserWallets(ctx context.Context) ([]ListUserWalletsRow, er
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListUserWalletsRow{}
+	var items []ListUserWalletsRow
 	for rows.Next() {
 		var i ListUserWalletsRow
 		if err := rows.Scan(
@@ -169,6 +174,7 @@ func (q *Queries) ListUserWallets(ctx context.Context) ([]ListUserWalletsRow, er
 			&i.Email,
 			&i.Password,
 			&i.ProfilePicture,
+			&i.Otp,
 			&i.CreatedAt_2,
 			&i.UpdatedAt_2,
 		); err != nil {
@@ -189,8 +195,8 @@ UPDATE user_wallet
 `
 
 type UpdateUserWalletAmountParams struct {
-	ID     int64         `json:"id"`
-	Amount pgtype.Float8 `json:"amount"`
+	ID     int64
+	Amount pgtype.Float8
 }
 
 func (q *Queries) UpdateUserWalletAmount(ctx context.Context, arg UpdateUserWalletAmountParams) error {

@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -68,32 +69,32 @@ func ParseUserTransactionData(foundUserTransactions []postgres.GetUserWalletTran
 	if len(foundUserTransactions) < 1 {
 		return nil, fmt.Errorf("No rows to parse")
 	}
-	println(len(foundUserTransactions))
 	for i := 0; i < len(foundUserTransactions); i++ {
 		var transaction models.UserTransaction
 		transaction.ID = int32(foundUserTransactions[i].ID)
 		transaction.TransactionAmount = foundUserTransactions[i].TransactionAmount.Float64
-		transaction.CreatedAt = foundUserTransactions[i].CreatedAt.Time.GoString()
-		transaction.UpdatedAt = foundUserTransactions[i].UpdatedAt.Time.GoString()
+		transaction.CreatedAt = foundUserTransactions[i].CreatedAt.Time.String()
+		transaction.UpdatedAt = foundUserTransactions[i].UpdatedAt.Time.String()
 		transaction.UserWalletID = foundUserTransactions[i].UserWalletID.Int32
 		transaction.UserWalletData.ID = int32(foundUserTransactions[i].ID_2)
 		transaction.UserWalletData.Amount = foundUserTransactions[i].Amount.Float64
-		transaction.UserWalletData.CreatedAt = foundUserTransactions[i].CreatedAt_2.Time.GoString()
-		transaction.UserWalletData.UpdatedAt = foundUserTransactions[i].UpdatedAt_2.Time.GoString()
+		transaction.UserWalletData.CreatedAt = foundUserTransactions[i].CreatedAt_2.Time.String()
+		transaction.UserWalletData.UpdatedAt = foundUserTransactions[i].UpdatedAt_2.Time.String()
 		transaction.UserWalletData.User.ID = foundUserTransactions[i].ID_3
 		transaction.UserWalletData.User.Email = foundUserTransactions[i].Email.String
 		transaction.UserWalletData.User.Name = foundUserTransactions[i].Name
 		transaction.UserWalletData.User.Password = foundUserTransactions[i].Password.String
-		transaction.UserWalletData.User.CreatedAt = foundUserTransactions[i].CreatedAt_3.Time.GoString()
-		transaction.UserWalletData.User.UpdatedAt = foundUserTransactions[i].UpdatedAt_3.Time.GoString()
+		transaction.UserWalletData.User.CreatedAt = foundUserTransactions[i].CreatedAt_3.Time.String()
+		transaction.UserWalletData.User.UpdatedAt = foundUserTransactions[i].UpdatedAt_3.Time.String()
 
 		result = append(result, transaction)
 	}
 	return result, nil
 }
+
 func ParseUserWalletData(foundWallet postgres.GetUserWalletRow) interface{} {
 	var result models.UserWallet
-	result.ID = foundWallet.UserID.Int32
+	result.ID = int32(foundWallet.ID)
 	result.Amount = foundWallet.Amount.Float64
 	result.UserID = foundWallet.UserID.Int32
 	result.User.ID = foundWallet.ID_2
@@ -101,4 +102,50 @@ func ParseUserWalletData(foundWallet postgres.GetUserWalletRow) interface{} {
 	result.User.Email = foundWallet.Email.String
 	result.User.Password = foundWallet.Password.String
 	return result
+}
+func ParsePropertyData(property postgres.GetPropertyByIDRow) interface{} {
+	var result models.Property
+	result.ID = property.ID
+	result.SizeInSqFeet = int64(property.Sizeinsqfeet.Int32)
+	result.Demand = property.Demand.String
+	result.Status = property.Status.String
+	result.Location = property.Location.String
+	result.UserId = int64(property.UserID.Int32)
+	result.Images = property.Images
+	result.UpdatedAt = property.UpdatedAt.Time.String()
+	result.CreatedAt = property.CreatedAt.Time.String()
+	result.User.Email = property.Email.String
+	result.User.ID = int64(property.UserID.Int32)
+	result.User.Name = property.Name
+	result.User.Password = property.Password.String
+	result.User.UpdatedAt = property.UpdatedAt_2.Time.String()
+	result.User.CreatedAt = property.CreatedAt_2.Time.String()
+	return result
+}
+func ParsePropertyDataArray(property []postgres.GetPropertyByUserIDRow) interface{} {
+	var finalResult []models.Property
+	for i := 0; i < len(property); i++ {
+		var result models.Property
+		result.ID = property[i].ID
+		result.SizeInSqFeet = int64(property[i].Sizeinsqfeet.Int32)
+		result.Demand = property[i].Demand.String
+		result.Status = property[i].Status.String
+		result.Location = property[i].Location.String
+		result.Images = property[i].Images
+		result.UserId = int64(property[i].UserID.Int32)
+		result.UpdatedAt = property[i].UpdatedAt.Time.String()
+		result.CreatedAt = property[i].CreatedAt.Time.String()
+		result.User.Email = property[i].Email.String
+		result.User.ID = int64(property[i].UserID.Int32)
+		result.User.Name = property[i].Name
+		result.User.Password = property[i].Password.String
+		result.User.UpdatedAt = property[i].UpdatedAt_2.Time.String()
+		result.User.CreatedAt = property[i].CreatedAt_2.Time.String()
+		finalResult = append(finalResult, result)
+	}
+	return finalResult
+}
+func GenerateRandomCode() int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(999999-100000+1) + 100000
 }

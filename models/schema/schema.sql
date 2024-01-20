@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   email text,
   password text,
   profile_picture text,
+  otp int,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -31,8 +32,9 @@ CREATE TABLE IF NOT EXISTS properties (
   id   BIGSERIAL PRIMARY KEY,
   sizeInSqFeet int,
   location text,
+  images text[],
   demand text,
-  status text,
+  status text DEFAULT 'pending',
   user_id int,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),

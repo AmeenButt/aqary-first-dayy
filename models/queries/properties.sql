@@ -1,8 +1,8 @@
 -- name: InsertProperty :one
-INSERT INTO properties (sizeInSqFeet, location,demand,status,user_id) VALUES ($1,$2,$3,$4, $5) RETURNING *;
+INSERT INTO properties (sizeInSqFeet, location,demand,user_id,images) VALUES ($1,$2,$3,$4,$5) RETURNING *;
 
 -- name: UpdateProperty :one
-UPDATE properties SET sizeInSqFeet =$2 , location = $3 ,demand = $4 ,status=$5 
+UPDATE properties SET sizeInSqFeet =$2 , location = $3 ,demand = $4 ,status=$5 , images=$6
 WHERE id=$1 RETURNING *;
 
 -- name: GetPropertyByID :one

@@ -30,10 +30,12 @@ func (w *WalletHanlder) Create(c *gin.Context) {
 		c.JSON(http.StatusNoContent, gin.H{"error": "Body can not be empty"})
 		return
 	}
+
 	if data.UserID < 1 || data.Amount < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "one or both of user_id and amount are invalid"})
 		return
 	}
+	fmt.Println(data.UserID)
 	_, err := queries.GetUserByID(context.Background(), int64(data.UserID))
 	if err != nil {
 		fmt.Printf("%v", err)

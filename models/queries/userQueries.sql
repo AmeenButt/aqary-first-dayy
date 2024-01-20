@@ -16,12 +16,18 @@ INSERT INTO users (
 )
 RETURNING *;
 
--- name: UpdateUser :exec
+-- name: UpdateUser :one
 UPDATE users
   set name = $2,
   email = $3,
   password = $4,
   profile_picture = $5,
+  updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: UpdateOTP :one
+UPDATE users
+  set otp = $2,
   updated_at = NOW()
 WHERE id = $1 RETURNING *;
 

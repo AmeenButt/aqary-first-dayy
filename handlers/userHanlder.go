@@ -157,3 +157,67 @@ func (u *User) UploadProfilePicture(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"result": filename, "message": "File Uploaded"})
 }
+func (u *User) SendOtp(c *gin.Context) {
+	queries := postgres.New(u.conn)
+	idStr := c.Query("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Id"})
+		return
+	}
+	foundUser, err := queries.GetUserByID(context.Background(), int64(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Generate OTP
+	otp := utils.GenerateRandomCode()
+	result := fmt.Sprintf("Your password reset otp is:%d", otp)
+
+	// Concatenate the OTP to the template
+
+	err = utils.SendMail(foundUser.Email.String, "Your otp for reset password", result)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Could not send otp"})
+		return
+	}
+	updateuser, err := queries.UpdateOTP(context.Background(), postgres.UpdateOTPParams{
+		ID:  foundUser.ID,
+		Otp: pgtype.Int4{Int32: int32(otp), Valid: true},
+	})
+	c.JSON(http.StatusOK, gin.H{"message": "OTP sent Sucessfully", "result": updateuser})
+}
+func (u *User) VerifyOtp(c *gin.Context) {
+	queries := postgres.New(u.conn)
+	idStr := c.Query("id")
+	otpStr := c.Query("otp")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Id"})
+		return
+	}
+	otp, err := strconv.Atoi(otpStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Id"})
+		return
+	}
+	foundUser, err := queries.GetUserByID(context.Background(), int64(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+	convertedOtp := pgtype.Int4{Int32: int32(otp), Valid: true}
+	// Generate OTP
+	fmt.Println(foundUser.Otp)
+	fmt.Println(convertedOtp)
+	if foundUser.Otp != convertedOtp {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Incorrect OTP"})
+		return
+	}
+	updateuser, err := queries.UpdateOTP(context.Background(), postgres.UpdateOTPParams{
+		ID:  foundUser.ID,
+		Otp: pgtype.Int4{Int32: 0, Valid: true},
+	})
+	c.JSON(http.StatusOK, gin.H{"message": "OTP verified", "result": updateuser})
+}

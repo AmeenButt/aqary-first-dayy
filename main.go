@@ -27,6 +27,9 @@ func main() {
 	// Serve the uploads folder statically
 	server.Static("/uploads", uploadsFolderPath)
 
+	// Property Route
+	routes.RegisterPropertiesRoutes(server, conn)
+
 	// User Routes
 	routes.RegisterUserRoutes(server, conn)
 

@@ -16,5 +16,7 @@ func RegisterUserRoutes(router *gin.Engine, conn *pgx.Conn) {
 		server.GET("/get", UserHanlder.GetUser)
 		server.GET("/get-all-users", middleware.AuthMiddleware(), UserHanlder.GetAllUser)
 		server.POST("/upload-profile", middleware.AuthMiddleware(), UserHanlder.UploadProfilePicture)
+		server.POST("/send-otp", UserHanlder.SendOtp)
+		server.POST("/verify-otp", UserHanlder.VerifyOtp)
 	}
 }
