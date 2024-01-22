@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"assesment.sqlc.dev/app/models"
 	"assesment.sqlc.dev/app/postgres"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -46,7 +48,7 @@ func ParseToken(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Validate the signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return secretKey, nil
 	})
@@ -61,13 +63,13 @@ func ParseToken(tokenString string) (jwt.MapClaims, error) {
 		return claims, nil
 	}
 
-	return nil, fmt.Errorf("Token is not valid")
+	return nil, fmt.Errorf("token is not valid")
 }
 
 func ParseUserTransactionData(foundUserTransactions []postgres.GetUserWalletTransactionsRow) ([]models.UserTransaction, error) {
 	var result []models.UserTransaction
 	if len(foundUserTransactions) < 1 {
-		return nil, fmt.Errorf("No rows to parse")
+		return nil, fmt.Errorf("no rows to parse")
 	}
 	for i := 0; i < len(foundUserTransactions); i++ {
 		var transaction models.UserTransaction
@@ -148,4 +150,17 @@ func ParsePropertyDataArray(property []postgres.GetPropertyByUserIDRow) interfac
 func GenerateRandomCode() int {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(999999-100000+1) + 100000
+}
+func GetErrorMessage(err error) string {
+	if err == nil {
+		return "No error"
+	}
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return "Record does not exsists"
+	case errors.Is(err, pgx.ErrTxClosed):
+		return "Transaction already done"
+	default:
+		return fmt.Sprintf("Internal server error: %v", err)
+	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -31,13 +30,9 @@ func CreateUserHanlder(conn *pgx.Conn) *User {
 
 func (u *User) CreateUser(c *gin.Context) {
 	queries := postgres.New(u.conn)
-	data := &models.UserModel{}
+	data := &models.InputUserModel{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusNoContent, gin.H{"error": "Body can not be empty"})
-		return
-	}
-	if data.Name == "" || data.Email == "" || data.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name, email and password are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password are required"})
 		return
 	}
 	_, err := queries.GetUserByEmail(context.Background(), pgtype.Text{String: data.Email, Valid: true})
@@ -46,6 +41,10 @@ func (u *User) CreateUser(c *gin.Context) {
 		return
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost)
+	if err == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error While encrypting password"})
+		return
+	}
 	insertedUser, err := queries.CreateUser(context.Background(), postgres.CreateUserParams{
 		Name:           data.Name,
 		Email:          pgtype.Text{String: data.Email, Valid: true},
@@ -54,7 +53,7 @@ func (u *User) CreateUser(c *gin.Context) {
 	})
 	if err != nil {
 		fmt.Printf("%v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User can not be added"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User Added Sucessfully", "result": insertedUser})
@@ -70,26 +69,22 @@ func (u *User) GetUser(c *gin.Context) {
 	}
 	foundUser, err := queries.GetUserByID(context.Background(), int64(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User Found Sucessfully", "result": foundUser})
 }
+
 func (u *User) SignIn(c *gin.Context) {
 	queries := postgres.New(u.conn)
-	data := &models.UserModel{}
+	data := &models.InputUserModel{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		log.Printf("%v", err)
-		c.JSON(http.StatusNoContent, gin.H{"error": "Body can not be empty"})
-		return
-	}
-	if data.Email == "" || data.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name, email and password are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
 		return
 	}
 	userData, err := queries.GetUserByEmail(context.Background(), pgtype.Text{String: data.Email, Valid: true})
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User does exsists with this email"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(userData.Password.String), []byte(data.Password))
@@ -98,14 +93,17 @@ func (u *User) SignIn(c *gin.Context) {
 		return
 	}
 	token, err := utils.GenerateToken(userData.ID)
-
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while generating jwt token"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Sign in sucessfull", "result": userData, "jwt-token": token})
 }
 func (u *User) GetAllUser(c *gin.Context) {
 	queries := postgres.New(u.conn)
 	foundUser, err := queries.ListUsers(context.Background())
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Users not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User Found Sucessfully", "result": foundUser})
@@ -133,7 +131,7 @@ func (u *User) UploadProfilePicture(c *gin.Context) {
 	out, err := os.Create(filename)
 	if err != nil {
 		fmt.Printf("%v", err)
-		c.JSON(500, gin.H{"error": "Internal server error"})
+		c.JSON(500, gin.H{"error": "Error while uploading file"})
 		return
 	}
 	defer out.Close()
@@ -145,6 +143,10 @@ func (u *User) UploadProfilePicture(c *gin.Context) {
 		return
 	}
 	id, err := strconv.Atoi(userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Can not use this userId"})
+		return
+	}
 	filepath := "uploads/" + utcTimeString + header.Filename
 	if id != 0 {
 		err := queries.UpdateUserPicture(context.Background(), postgres.UpdateUserPictureParams{
@@ -167,7 +169,7 @@ func (u *User) SendOtp(c *gin.Context) {
 	}
 	foundUser, err := queries.GetUserByID(context.Background(), int64(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 
@@ -186,6 +188,10 @@ func (u *User) SendOtp(c *gin.Context) {
 		ID:  foundUser.ID,
 		Otp: pgtype.Int4{Int32: int32(otp), Valid: true},
 	})
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "OTP sent Sucessfully", "result": updateuser})
 }
 func (u *User) VerifyOtp(c *gin.Context) {
@@ -204,7 +210,7 @@ func (u *User) VerifyOtp(c *gin.Context) {
 	}
 	foundUser, err := queries.GetUserByID(context.Background(), int64(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	convertedOtp := pgtype.Int4{Int32: int32(otp), Valid: true}
@@ -219,5 +225,9 @@ func (u *User) VerifyOtp(c *gin.Context) {
 		ID:  foundUser.ID,
 		Otp: pgtype.Int4{Int32: 0, Valid: true},
 	})
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "OTP verified", "result": updateuser})
 }

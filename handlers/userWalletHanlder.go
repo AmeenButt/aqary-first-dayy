@@ -24,22 +24,16 @@ func CreateWalletHanlder(conn *pgx.Conn) *WalletHanlder {
 
 func (w *WalletHanlder) Create(c *gin.Context) {
 	queries := postgres.New(w.conn)
-	data := &models.UserWallet{}
+	data := &models.InputUserWallet{}
 	if err := c.ShouldBindJSON(data); err != nil {
 		fmt.Printf("%v", err)
-		c.JSON(http.StatusNoContent, gin.H{"error": "Body can not be empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
 		return
 	}
-
-	if data.UserID < 1 || data.Amount < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "one or both of user_id and amount are invalid"})
-		return
-	}
-	fmt.Println(data.UserID)
 	_, err := queries.GetUserByID(context.Background(), int64(data.UserID))
 	if err != nil {
 		fmt.Printf("%v", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "User with this id does not exsists"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	_, err = queries.GetUserWallet(context.Background(), pgtype.Int4{Int32: data.UserID, Valid: true})
@@ -54,7 +48,7 @@ func (w *WalletHanlder) Create(c *gin.Context) {
 	})
 	if err != nil {
 		fmt.Printf("%v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Wallet of this user may already exsists"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "wallet created", "result": insertedWallet})
@@ -70,7 +64,7 @@ func (w *WalletHanlder) GetWallet(c *gin.Context) {
 	}
 	foundWallet, err := queries.GetUserWallet(context.Background(), pgtype.Int4{Int32: int32(user_id), Valid: true})
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Wallet does not exsists"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	result := utils.ParseUserWalletData(foundWallet)
@@ -97,22 +91,15 @@ func (w *WalletHanlder) Withdraw(c *gin.Context) {
 	}()
 
 	queries := postgres.New(w.conn)
-	data := &models.UserTransaction{}
+	data := &models.InputUserTransaction{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		fmt.Printf("%v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Body can not be empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction_amount and user_wallet_id are required"})
 		return
 	}
-
-	if data.TransactionAmount < 1 || data.UserWalletID < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction_amount and user_wallet_id are required and should be greater than 0"})
-		return
-	}
-
 	userWallet, err := queries.GetUserWalletByID(context.Background(), int64(data.UserWalletID))
 	if err != nil {
 		fmt.Printf("%v", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Wallet with this id does not exist"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 
@@ -123,7 +110,7 @@ func (w *WalletHanlder) Withdraw(c *gin.Context) {
 
 	err = utils.UpdateWalletAmount(data.UserWalletID, (userWallet.Amount.Float64 - data.TransactionAmount), queries)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Error occurred while withdrawal"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 
@@ -135,7 +122,7 @@ func (w *WalletHanlder) Withdraw(c *gin.Context) {
 
 	if err != nil {
 		fmt.Printf("%v", err)
-		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Error while performing transaction"})
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 
@@ -169,20 +156,14 @@ func (w *WalletHanlder) Deposit(c *gin.Context) {
 		}
 	}()
 	queries := postgres.New(w.conn)
-	data := &models.UserTransaction{}
+	data := &models.InputUserTransaction{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		fmt.Printf("%v", err)
-		c.JSON(http.StatusNoContent, gin.H{"error": "Body can not be empty"})
-		return
-	}
-	if data.TransactionAmount < 1 || data.UserWalletID < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction_amount and user_wallet_id are required and should be greater then 0"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction_amount and user_wallet_id are required"})
 		return
 	}
 	userWallet, err := queries.GetUserWalletByID(context.Background(), int64(data.UserWalletID))
 	if err != nil {
-		fmt.Printf("%v", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Wallet with this id does not exsists"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	if utils.UpdateWalletAmount(data.UserWalletID, (userWallet.Amount.Float64+data.TransactionAmount), queries) != nil {
@@ -196,7 +177,6 @@ func (w *WalletHanlder) Deposit(c *gin.Context) {
 	})
 
 	if err != nil {
-		fmt.Printf("%v", err)
 		utils.UpdateWalletAmount(data.UserWalletID, (userWallet.Amount.Float64 - data.TransactionAmount), queries)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while performing transaction"})
 		return
@@ -220,7 +200,7 @@ func (w *WalletHanlder) GetUserTransactions(c *gin.Context) {
 	}
 	foundUserTransactions, err := queries.GetUserWalletTransactions(context.Background(), pgtype.Int4{Int32: int32(user_wallet_id), Valid: true})
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Error while fetching transactions"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	result, err := utils.ParseUserTransactionData(foundUserTransactions)

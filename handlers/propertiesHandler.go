@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -24,13 +23,9 @@ func GetPropertiesHandlers(conn *pgx.Conn) *Properties {
 
 func (p *Properties) Add(c *gin.Context) {
 	queries := postgres.New(p.conn)
-	data := &models.Property{}
+	data := &models.InputProperty{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusNoContent, gin.H{"error": "No content found"})
-		return
-	}
-	if data.SizeInSqFeet == 0 || data.Location == "" || data.Demand == "" || data.UserId == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No content found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id, size_in_feet, location and demand are required"})
 		return
 	}
 	property, err := queries.InsertProperty(context.Background(), postgres.InsertPropertyParams{
@@ -41,8 +36,7 @@ func (p *Properties) Add(c *gin.Context) {
 		Images:       data.Images,
 	})
 	if err != nil {
-		fmt.Printf("%v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while adding property"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": utils.GetErrorMessage(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Property Added", "result": property})
@@ -50,14 +44,14 @@ func (p *Properties) Add(c *gin.Context) {
 
 func (p *Properties) Update(c *gin.Context) {
 	queries := postgres.New(p.conn)
-	data := &models.Property{}
+	data := &models.InputProperty{}
 	if err := c.ShouldBindJSON(data); err != nil {
 		c.JSON(http.StatusNoContent, gin.H{"error": "No content found"})
 		return
 	}
 	_, err := queries.GetPropertyByID(context.Background(), data.ID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Property with this id does not exsists"})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	updatedProperty, err := queries.UpdateProperty(context.Background(), postgres.UpdatePropertyParams{
@@ -69,7 +63,7 @@ func (p *Properties) Update(c *gin.Context) {
 		Demand:       pgtype.Text{String: data.Demand, Valid: true},
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while updating properties"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Property Updated", "result": updatedProperty})
@@ -79,7 +73,7 @@ func (p *Properties) UpdateStatus(c *gin.Context) {
 	queries := postgres.New(p.conn)
 	data := &models.Property{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusNoContent, gin.H{"message": "no content found"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "no content found"})
 		return
 	}
 	updatedData, err := queries.UpdateStatus(context.Background(), postgres.UpdateStatusParams{
@@ -87,7 +81,7 @@ func (p *Properties) UpdateStatus(c *gin.Context) {
 		Status: pgtype.Text{String: data.Status, Valid: true},
 	})
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "no property found with this id"})
+		c.JSON(http.StatusNotFound, gin.H{"message": utils.GetErrorMessage(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Property status updated", "result": updatedData})
@@ -107,7 +101,7 @@ func (p *Properties) GetByID(c *gin.Context) {
 	}
 	foundProperty, err := queries.GetPropertyByID(context.Background(), int64(id))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "property with this id does not exsists"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	result := utils.ParsePropertyData(foundProperty)
@@ -128,7 +122,7 @@ func (p *Properties) GetByUserID(c *gin.Context) {
 	}
 	foundProperties, err := queries.GetPropertyByUserID(context.Background(), pgtype.Int4{Int32: int32(user_id), Valid: true})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "property with this user_id does not exsists"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	result := utils.ParsePropertyDataArray(foundProperties)
