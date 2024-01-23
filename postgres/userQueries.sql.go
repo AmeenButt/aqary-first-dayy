@@ -21,10 +21,10 @@ RETURNING id, name, email, password, profile_picture, otp, created_at, updated_a
 `
 
 type CreateUserParams struct {
-	Name           string
-	Email          pgtype.Text
-	Password       pgtype.Text
-	ProfilePicture pgtype.Text
+	Name           string      `json:"name"`
+	Email          pgtype.Text `json:"email"`
+	Password       pgtype.Text `json:"password"`
+	ProfilePicture pgtype.Text `json:"profile_picture"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -108,7 +108,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	items := []User{}
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
@@ -139,8 +139,8 @@ WHERE id = $1 RETURNING id, name, email, password, profile_picture, otp, created
 `
 
 type UpdateOTPParams struct {
-	ID  int64
-	Otp pgtype.Int4
+	ID  int64       `json:"id"`
+	Otp pgtype.Int4 `json:"otp"`
 }
 
 func (q *Queries) UpdateOTP(ctx context.Context, arg UpdateOTPParams) (User, error) {
@@ -170,11 +170,11 @@ WHERE id = $1 RETURNING id, name, email, password, profile_picture, otp, created
 `
 
 type UpdateUserParams struct {
-	ID             int64
-	Name           string
-	Email          pgtype.Text
-	Password       pgtype.Text
-	ProfilePicture pgtype.Text
+	ID             int64       `json:"id"`
+	Name           string      `json:"name"`
+	Email          pgtype.Text `json:"email"`
+	Password       pgtype.Text `json:"password"`
+	ProfilePicture pgtype.Text `json:"profile_picture"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
@@ -207,8 +207,8 @@ WHERE id = $1 RETURNING id, name, email, password, profile_picture, otp, created
 `
 
 type UpdateUserPictureParams struct {
-	ID             int64
-	ProfilePicture pgtype.Text
+	ID             int64       `json:"id"`
+	ProfilePicture pgtype.Text `json:"profile_picture"`
 }
 
 func (q *Queries) UpdateUserPicture(ctx context.Context, arg UpdateUserPictureParams) error {

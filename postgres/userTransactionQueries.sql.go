@@ -21,9 +21,9 @@ RETURNING id, action, user_wallet_id, transaction_amount, created_at, updated_at
 `
 
 type CreateUserTransactionParams struct {
-	UserWalletID      pgtype.Int4
-	TransactionAmount pgtype.Float8
-	Action            string
+	UserWalletID      pgtype.Int4   `json:"user_wallet_id"`
+	TransactionAmount pgtype.Float8 `json:"transaction_amount"`
+	Action            string        `json:"action"`
 }
 
 func (q *Queries) CreateUserTransaction(ctx context.Context, arg CreateUserTransactionParams) (UserTransaction, error) {
@@ -55,25 +55,25 @@ SELECT ut.id, action, user_wallet_id, transaction_amount, ut.created_at, ut.upda
 `
 
 type GetUserWalletTransactionsRow struct {
-	ID                int64
-	Action            string
-	UserWalletID      pgtype.Int4
-	TransactionAmount pgtype.Float8
-	CreatedAt         pgtype.Timestamp
-	UpdatedAt         pgtype.Timestamp
-	ID_2              int64
-	UserID            pgtype.Int4
-	Amount            pgtype.Float8
-	CreatedAt_2       pgtype.Timestamp
-	UpdatedAt_2       pgtype.Timestamp
-	ID_3              int64
-	Name              string
-	Email             pgtype.Text
-	Password          pgtype.Text
-	ProfilePicture    pgtype.Text
-	Otp               pgtype.Int4
-	CreatedAt_3       pgtype.Timestamp
-	UpdatedAt_3       pgtype.Timestamp
+	ID                int64            `json:"id"`
+	Action            string           `json:"action"`
+	UserWalletID      pgtype.Int4      `json:"user_wallet_id"`
+	TransactionAmount pgtype.Float8    `json:"transaction_amount"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	ID_2              int64            `json:"id_2"`
+	UserID            pgtype.Int4      `json:"user_id"`
+	Amount            pgtype.Float8    `json:"amount"`
+	CreatedAt_2       pgtype.Timestamp `json:"created_at_2"`
+	UpdatedAt_2       pgtype.Timestamp `json:"updated_at_2"`
+	ID_3              int64            `json:"id_3"`
+	Name              string           `json:"name"`
+	Email             pgtype.Text      `json:"email"`
+	Password          pgtype.Text      `json:"password"`
+	ProfilePicture    pgtype.Text      `json:"profile_picture"`
+	Otp               pgtype.Int4      `json:"otp"`
+	CreatedAt_3       pgtype.Timestamp `json:"created_at_3"`
+	UpdatedAt_3       pgtype.Timestamp `json:"updated_at_3"`
 }
 
 func (q *Queries) GetUserWalletTransactions(ctx context.Context, userWalletID pgtype.Int4) ([]GetUserWalletTransactionsRow, error) {
@@ -82,7 +82,7 @@ func (q *Queries) GetUserWalletTransactions(ctx context.Context, userWalletID pg
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetUserWalletTransactionsRow
+	items := []GetUserWalletTransactionsRow{}
 	for rows.Next() {
 		var i GetUserWalletTransactionsRow
 		if err := rows.Scan(
@@ -121,17 +121,17 @@ SELECT u.id, action, user_wallet_id, transaction_amount, u.created_at, u.updated
 `
 
 type ListTransactionsRow struct {
-	ID                int64
-	Action            string
-	UserWalletID      pgtype.Int4
-	TransactionAmount pgtype.Float8
-	CreatedAt         pgtype.Timestamp
-	UpdatedAt         pgtype.Timestamp
-	ID_2              int64
-	UserID            pgtype.Int4
-	Amount            pgtype.Float8
-	CreatedAt_2       pgtype.Timestamp
-	UpdatedAt_2       pgtype.Timestamp
+	ID                int64            `json:"id"`
+	Action            string           `json:"action"`
+	UserWalletID      pgtype.Int4      `json:"user_wallet_id"`
+	TransactionAmount pgtype.Float8    `json:"transaction_amount"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	ID_2              int64            `json:"id_2"`
+	UserID            pgtype.Int4      `json:"user_id"`
+	Amount            pgtype.Float8    `json:"amount"`
+	CreatedAt_2       pgtype.Timestamp `json:"created_at_2"`
+	UpdatedAt_2       pgtype.Timestamp `json:"updated_at_2"`
 }
 
 func (q *Queries) ListTransactions(ctx context.Context) ([]ListTransactionsRow, error) {
@@ -140,7 +140,7 @@ func (q *Queries) ListTransactions(ctx context.Context) ([]ListTransactionsRow, 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListTransactionsRow
+	items := []ListTransactionsRow{}
 	for rows.Next() {
 		var i ListTransactionsRow
 		if err := rows.Scan(

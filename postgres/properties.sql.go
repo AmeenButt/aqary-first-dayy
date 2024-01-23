@@ -37,23 +37,23 @@ SELECT p.id, p.sizeinsqfeet, p.location, p.images, p.demand, p.status, p.user_id
 `
 
 type GetPropertyByIDRow struct {
-	ID             int64
-	Sizeinsqfeet   pgtype.Int4
-	Location       pgtype.Text
-	Images         []string
-	Demand         pgtype.Text
-	Status         pgtype.Text
-	UserID         pgtype.Int4
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	ID_2           int64
-	Name           string
-	Email          pgtype.Text
-	Password       pgtype.Text
-	ProfilePicture pgtype.Text
-	Otp            pgtype.Int4
-	CreatedAt_2    pgtype.Timestamp
-	UpdatedAt_2    pgtype.Timestamp
+	ID             int64            `json:"id"`
+	Sizeinsqfeet   pgtype.Int4      `json:"sizeinsqfeet"`
+	Location       pgtype.Text      `json:"location"`
+	Images         []string         `json:"images"`
+	Demand         pgtype.Text      `json:"demand"`
+	Status         pgtype.Text      `json:"status"`
+	UserID         pgtype.Int4      `json:"user_id"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+	ID_2           int64            `json:"id_2"`
+	Name           string           `json:"name"`
+	Email          pgtype.Text      `json:"email"`
+	Password       pgtype.Text      `json:"password"`
+	ProfilePicture pgtype.Text      `json:"profile_picture"`
+	Otp            pgtype.Int4      `json:"otp"`
+	CreatedAt_2    pgtype.Timestamp `json:"created_at_2"`
+	UpdatedAt_2    pgtype.Timestamp `json:"updated_at_2"`
 }
 
 func (q *Queries) GetPropertyByID(ctx context.Context, id int64) (GetPropertyByIDRow, error) {
@@ -86,23 +86,23 @@ SELECT p.id, p.sizeinsqfeet, p.location, p.images, p.demand, p.status, p.user_id
 `
 
 type GetPropertyByUserIDRow struct {
-	ID             int64
-	Sizeinsqfeet   pgtype.Int4
-	Location       pgtype.Text
-	Images         []string
-	Demand         pgtype.Text
-	Status         pgtype.Text
-	UserID         pgtype.Int4
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	ID_2           int64
-	Name           string
-	Email          pgtype.Text
-	Password       pgtype.Text
-	ProfilePicture pgtype.Text
-	Otp            pgtype.Int4
-	CreatedAt_2    pgtype.Timestamp
-	UpdatedAt_2    pgtype.Timestamp
+	ID             int64            `json:"id"`
+	Sizeinsqfeet   pgtype.Int4      `json:"sizeinsqfeet"`
+	Location       pgtype.Text      `json:"location"`
+	Images         []string         `json:"images"`
+	Demand         pgtype.Text      `json:"demand"`
+	Status         pgtype.Text      `json:"status"`
+	UserID         pgtype.Int4      `json:"user_id"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+	ID_2           int64            `json:"id_2"`
+	Name           string           `json:"name"`
+	Email          pgtype.Text      `json:"email"`
+	Password       pgtype.Text      `json:"password"`
+	ProfilePicture pgtype.Text      `json:"profile_picture"`
+	Otp            pgtype.Int4      `json:"otp"`
+	CreatedAt_2    pgtype.Timestamp `json:"created_at_2"`
+	UpdatedAt_2    pgtype.Timestamp `json:"updated_at_2"`
 }
 
 func (q *Queries) GetPropertyByUserID(ctx context.Context, userID pgtype.Int4) ([]GetPropertyByUserIDRow, error) {
@@ -111,7 +111,7 @@ func (q *Queries) GetPropertyByUserID(ctx context.Context, userID pgtype.Int4) (
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPropertyByUserIDRow
+	items := []GetPropertyByUserIDRow{}
 	for rows.Next() {
 		var i GetPropertyByUserIDRow
 		if err := rows.Scan(
@@ -148,11 +148,11 @@ INSERT INTO properties (sizeInSqFeet, location,demand,user_id,images) VALUES ($1
 `
 
 type InsertPropertyParams struct {
-	Sizeinsqfeet pgtype.Int4
-	Location     pgtype.Text
-	Demand       pgtype.Text
-	UserID       pgtype.Int4
-	Images       []string
+	Sizeinsqfeet pgtype.Int4 `json:"sizeinsqfeet"`
+	Location     pgtype.Text `json:"location"`
+	Demand       pgtype.Text `json:"demand"`
+	UserID       pgtype.Int4 `json:"user_id"`
+	Images       []string    `json:"images"`
 }
 
 func (q *Queries) InsertProperty(ctx context.Context, arg InsertPropertyParams) (Property, error) {
@@ -185,12 +185,12 @@ WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_i
 `
 
 type UpdatePropertyParams struct {
-	ID           int64
-	Sizeinsqfeet pgtype.Int4
-	Location     pgtype.Text
-	Demand       pgtype.Text
-	Status       pgtype.Text
-	Images       []string
+	ID           int64       `json:"id"`
+	Sizeinsqfeet pgtype.Int4 `json:"sizeinsqfeet"`
+	Location     pgtype.Text `json:"location"`
+	Demand       pgtype.Text `json:"demand"`
+	Status       pgtype.Text `json:"status"`
+	Images       []string    `json:"images"`
 }
 
 func (q *Queries) UpdateProperty(ctx context.Context, arg UpdatePropertyParams) (Property, error) {
@@ -224,8 +224,8 @@ WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_i
 `
 
 type UpdatePropertyDemandParams struct {
-	ID     int64
-	Demand pgtype.Text
+	ID     int64       `json:"id"`
+	Demand pgtype.Text `json:"demand"`
 }
 
 func (q *Queries) UpdatePropertyDemand(ctx context.Context, arg UpdatePropertyDemandParams) (Property, error) {
@@ -252,8 +252,8 @@ WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_i
 `
 
 type UpdatePropertyImagesParams struct {
-	ID     int64
-	Images []string
+	ID     int64    `json:"id"`
+	Images []string `json:"images"`
 }
 
 func (q *Queries) UpdatePropertyImages(ctx context.Context, arg UpdatePropertyImagesParams) (Property, error) {
@@ -280,8 +280,8 @@ WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_i
 `
 
 type UpdatePropertyLocationParams struct {
-	ID       int64
-	Location pgtype.Text
+	ID       int64       `json:"id"`
+	Location pgtype.Text `json:"location"`
 }
 
 func (q *Queries) UpdatePropertyLocation(ctx context.Context, arg UpdatePropertyLocationParams) (Property, error) {
@@ -308,8 +308,8 @@ WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_i
 `
 
 type UpdatePropertySizeParams struct {
-	ID           int64
-	Sizeinsqfeet pgtype.Int4
+	ID           int64       `json:"id"`
+	Sizeinsqfeet pgtype.Int4 `json:"sizeinsqfeet"`
 }
 
 func (q *Queries) UpdatePropertySize(ctx context.Context, arg UpdatePropertySizeParams) (Property, error) {
@@ -336,8 +336,8 @@ WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_i
 `
 
 type UpdateStatusParams struct {
-	ID     int64
-	Status pgtype.Text
+	ID     int64       `json:"id"`
+	Status pgtype.Text `json:"status"`
 }
 
 func (q *Queries) UpdateStatus(ctx context.Context, arg UpdateStatusParams) (Property, error) {

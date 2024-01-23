@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"assesment.sqlc.dev/app/postgres"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	// Replace with your actual package path
@@ -20,7 +21,8 @@ func TestRegisterUserRoutes(t *testing.T) {
 	defer conn.Close(context.Background())
 	ctx := context.Background()
 	router := gin.Default()
-	RegisterUserRoutes(router, conn, &ctx)
+	queries := postgres.NewStore(conn)
+	RegisterUserRoutes(router, conn, &ctx, queries)
 
 	// You can add assertions here to check if routes are correctly registered
 	assertRouteExists(t, router, "POST", "/users/create")
@@ -47,9 +49,10 @@ func TestUserRoutes(t *testing.T) {
 		panic(err)
 	}
 	defer conn.Close(context.Background())
+	queries := postgres.NewStore(conn)
 	ctx := context.Background()
 	router := gin.Default()
-	RegisterUserRoutes(router, conn, &ctx)
+	RegisterUserRoutes(router, conn, &ctx, queries)
 
 	// Replace the following with your actual test scenarios
 	testCases := []struct {

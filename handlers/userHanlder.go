@@ -21,22 +21,22 @@ import (
 )
 
 type UserHanlder struct {
-	conn *pgx.Conn
-	ctx  *context.Context
+	conn    *pgx.Conn
+	ctx     *context.Context
+	queries postgres.Store
 }
 
-func CreateUserHanlder(conn *pgx.Conn, ctx *context.Context) *UserHanlder {
-	return &UserHanlder{conn: conn, ctx: ctx}
+func CreateUserHanlder(conn *pgx.Conn, ctx *context.Context, store postgres.Store) *UserHanlder {
+	return &UserHanlder{conn: conn, ctx: ctx, queries: store}
 }
 
 func (u *UserHanlder) CreateUser(c *gin.Context) {
-	queries := postgres.New(u.conn)
 	data := &models.CreateUserModel{}
 	if err := c.ShouldBindJSON(data); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	_, err := queries.GetUserByEmail(*u.ctx, pgtype.Text{String: data.Email, Valid: true})
+	_, err := u.queries.GetUserByEmail(*u.ctx, pgtype.Text{String: data.Email, Valid: true})
 	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "User already exsists with this email"})
 		return
@@ -46,7 +46,7 @@ func (u *UserHanlder) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error While encrypting password"})
 		return
 	}
-	insertedUser, err := queries.CreateUser(*u.ctx, postgres.CreateUserParams{
+	insertedUser, err := u.queries.CreateUser(*u.ctx, postgres.CreateUserParams{
 		Name:           data.Name,
 		Email:          pgtype.Text{String: data.Email, Valid: true},
 		Password:       pgtype.Text{String: string(hashedPassword), Valid: true},
@@ -60,14 +60,13 @@ func (u *UserHanlder) CreateUser(c *gin.Context) {
 }
 
 func (u *UserHanlder) GetUser(c *gin.Context) {
-	queries := postgres.New(u.conn)
 	idStr := c.Query("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Id"})
 		return
 	}
-	foundUser, err := queries.GetUserByID(*u.ctx, int64(id))
+	foundUser, err := u.queries.GetUserByID(*u.ctx, int64(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -76,13 +75,12 @@ func (u *UserHanlder) GetUser(c *gin.Context) {
 }
 
 func (u *UserHanlder) SignIn(c *gin.Context) {
-	queries := postgres.New(u.conn)
 	data := &models.SignInUserModel{}
 	if err := c.ShouldBindJSON(data); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	userData, err := queries.GetUserByEmail(*u.ctx, pgtype.Text{String: data.Email, Valid: true})
+	userData, err := u.queries.GetUserByEmail(*u.ctx, pgtype.Text{String: data.Email, Valid: true})
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -101,8 +99,7 @@ func (u *UserHanlder) SignIn(c *gin.Context) {
 }
 
 func (u *UserHanlder) GetAllUser(c *gin.Context) {
-	queries := postgres.New(u.conn)
-	foundUser, err := queries.ListUsers(*u.ctx)
+	foundUser, err := u.queries.ListUsers(*u.ctx)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -116,7 +113,6 @@ func (u *UserHanlder) UploadProfilePicture(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request"})
 		return
 	}
-	queries := postgres.New(u.conn)
 	userID := c.Request.FormValue("id")
 
 	defer file.Close()
@@ -149,7 +145,7 @@ func (u *UserHanlder) UploadProfilePicture(c *gin.Context) {
 	}
 	filepath := "uploads/" + utcTimeString + header.Filename
 	if id != 0 {
-		_ = queries.UpdateUserPicture(*u.ctx, postgres.UpdateUserPictureParams{
+		_ = u.queries.UpdateUserPicture(*u.ctx, postgres.UpdateUserPictureParams{
 			ID:             int64(id),
 			ProfilePicture: pgtype.Text{String: filepath, Valid: true},
 		})
@@ -158,14 +154,13 @@ func (u *UserHanlder) UploadProfilePicture(c *gin.Context) {
 }
 
 func (u *UserHanlder) SendOtp(c *gin.Context) {
-	queries := postgres.New(u.conn)
 	idStr := c.Query("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Id"})
 		return
 	}
-	foundUser, err := queries.GetUserByID(*u.ctx, int64(id))
+	foundUser, err := u.queries.GetUserByID(*u.ctx, int64(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -182,7 +177,7 @@ func (u *UserHanlder) SendOtp(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Could not send otp"})
 		return
 	}
-	updateuser, err := queries.UpdateOTP(*u.ctx, postgres.UpdateOTPParams{
+	updateuser, err := u.queries.UpdateOTP(*u.ctx, postgres.UpdateOTPParams{
 		ID:  foundUser.ID,
 		Otp: pgtype.Int4{Int32: int32(otp), Valid: true},
 	})
@@ -194,7 +189,6 @@ func (u *UserHanlder) SendOtp(c *gin.Context) {
 }
 
 func (u *UserHanlder) VerifyOtp(c *gin.Context) {
-	queries := postgres.New(u.conn)
 	idStr := c.Query("id")
 	otpStr := c.Query("otp")
 	id, err := strconv.Atoi(idStr)
@@ -207,7 +201,7 @@ func (u *UserHanlder) VerifyOtp(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Id"})
 		return
 	}
-	foundUser, err := queries.GetUserByID(*u.ctx, int64(id))
+	foundUser, err := u.queries.GetUserByID(*u.ctx, int64(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -220,7 +214,8 @@ func (u *UserHanlder) VerifyOtp(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Incorrect OTP"})
 		return
 	}
-	updateuser, err := queries.UpdateOTP(*u.ctx, postgres.UpdateOTPParams{
+
+	updateuser, err := u.queries.UpdateOTP(*u.ctx, postgres.UpdateOTPParams{
 		ID:  foundUser.ID,
 		Otp: pgtype.Int4{Int32: 0, Valid: true},
 	})
@@ -230,4 +225,3 @@ func (u *UserHanlder) VerifyOtp(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "OTP verified", "result": updateuser})
 }
-

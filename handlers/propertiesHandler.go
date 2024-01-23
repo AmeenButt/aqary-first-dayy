@@ -8,28 +8,29 @@ import (
 	"assesment.sqlc.dev/app/models"
 	"assesment.sqlc.dev/app/postgres"
 	"assesment.sqlc.dev/app/utils"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type PropertiesHanlder struct {
-	conn *pgx.Conn
-	ctx  *context.Context
+	conn    *pgx.Conn
+	ctx     *context.Context
+	queries postgres.Store
 }
 
-func GetPropertiesHandlers(conn *pgx.Conn, ctx *context.Context) *PropertiesHanlder {
-	return &PropertiesHanlder{conn: conn, ctx: ctx}
+func GetPropertiesHandlers(conn *pgx.Conn, ctx *context.Context, store postgres.Store) *PropertiesHanlder {
+	return &PropertiesHanlder{conn: conn, ctx: ctx, queries: store}
 }
 
 func (p *PropertiesHanlder) Add(c *gin.Context) {
-	queries := postgres.New(p.conn)
 	data := &models.CreateProperty{}
 	if err := c.ShouldBindJSON(data); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	property, err := queries.InsertProperty(*p.ctx, postgres.InsertPropertyParams{
+	property, err := p.queries.InsertProperty(*p.ctx, postgres.InsertPropertyParams{
 		Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
 		Location:     pgtype.Text{String: data.Location, Valid: true},
 		Demand:       pgtype.Text{String: data.Demand, Valid: true},
@@ -44,20 +45,19 @@ func (p *PropertiesHanlder) Add(c *gin.Context) {
 }
 
 func (p *PropertiesHanlder) Update(c *gin.Context) {
-	queries := postgres.New(p.conn)
 	data := &models.UpdateProperty{}
 	var updatedProperty interface{}
 	if err := c.ShouldBindJSON(data); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	_, err := queries.GetPropertyByID(*p.ctx, data.ID)
+	_, err := p.queries.GetPropertyByID(*p.ctx, data.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
 	if data.Demand != "" {
-		updatedProperty, err = queries.UpdatePropertyDemand(*p.ctx, postgres.UpdatePropertyDemandParams{
+		updatedProperty, err = p.queries.UpdatePropertyDemand(*p.ctx, postgres.UpdatePropertyDemandParams{
 			ID:     data.ID,
 			Demand: pgtype.Text{String: data.Demand, Valid: true},
 		})
@@ -67,7 +67,7 @@ func (p *PropertiesHanlder) Update(c *gin.Context) {
 		}
 	}
 	if data.Location != "" {
-		updatedProperty, err = queries.UpdatePropertyLocation(*p.ctx, postgres.UpdatePropertyLocationParams{
+		updatedProperty, err = p.queries.UpdatePropertyLocation(*p.ctx, postgres.UpdatePropertyLocationParams{
 			ID:       data.ID,
 			Location: pgtype.Text{String: data.Location, Valid: true},
 		})
@@ -77,7 +77,7 @@ func (p *PropertiesHanlder) Update(c *gin.Context) {
 		}
 	}
 	if data.SizeInSqFeet != 0 {
-		updatedProperty, err = queries.UpdatePropertySize(*p.ctx, postgres.UpdatePropertySizeParams{
+		updatedProperty, err = p.queries.UpdatePropertySize(*p.ctx, postgres.UpdatePropertySizeParams{
 			ID:           data.ID,
 			Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
 		})
@@ -87,7 +87,7 @@ func (p *PropertiesHanlder) Update(c *gin.Context) {
 		}
 	}
 	if data.SizeInSqFeet != 0 {
-		updatedProperty, err = queries.UpdatePropertySize(*p.ctx, postgres.UpdatePropertySizeParams{
+		updatedProperty, err = p.queries.UpdatePropertySize(*p.ctx, postgres.UpdatePropertySizeParams{
 			ID:           data.ID,
 			Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
 		})
@@ -97,7 +97,7 @@ func (p *PropertiesHanlder) Update(c *gin.Context) {
 		}
 	}
 	if data.Images != nil {
-		updatedProperty, err = queries.UpdatePropertyImages(*p.ctx, postgres.UpdatePropertyImagesParams{
+		updatedProperty, err = p.queries.UpdatePropertyImages(*p.ctx, postgres.UpdatePropertyImagesParams{
 			ID:     data.ID,
 			Images: data.Images,
 		})
@@ -107,7 +107,7 @@ func (p *PropertiesHanlder) Update(c *gin.Context) {
 		}
 	}
 	if data.Status != "" {
-		updatedProperty, err = queries.UpdateStatus(*p.ctx, postgres.UpdateStatusParams{
+		updatedProperty, err = p.queries.UpdateStatus(*p.ctx, postgres.UpdateStatusParams{
 			ID:     data.ID,
 			Status: pgtype.Text{String: data.Status, Valid: true},
 		})
@@ -117,7 +117,7 @@ func (p *PropertiesHanlder) Update(c *gin.Context) {
 		}
 	}
 
-	// updatedProperty, err := queries.UpdateProperty(*p.ctx, postgres.UpdatePropertyParams{
+	// updatedProperty, err := p.queries.UpdateProperty(*p.ctx, postgres.UpdatePropertyParams{
 	// 	ID:           data.ID,
 	// 	Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
 	// 	Location:     pgtype.Text{String: data.Location, Valid: true},
@@ -133,7 +133,6 @@ func (p *PropertiesHanlder) Update(c *gin.Context) {
 }
 
 func (p *PropertiesHanlder) GetByID(c *gin.Context) {
-	queries := postgres.New(p.conn)
 	s_id := c.Query("id")
 	id, err := strconv.Atoi(s_id)
 	if err != nil {
@@ -144,7 +143,7 @@ func (p *PropertiesHanlder) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required and can not be 0"})
 		return
 	}
-	foundProperty, err := queries.GetPropertyByID(*p.ctx, int64(id))
+	foundProperty, err := p.queries.GetPropertyByID(*p.ctx, int64(id))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -154,7 +153,6 @@ func (p *PropertiesHanlder) GetByID(c *gin.Context) {
 }
 
 func (p *PropertiesHanlder) GetByUserID(c *gin.Context) {
-	queries := postgres.New(p.conn)
 	s_id := c.Query("user_id")
 	user_id, err := strconv.Atoi(s_id)
 	if err != nil {
@@ -165,7 +163,7 @@ func (p *PropertiesHanlder) GetByUserID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required and can not be 0"})
 		return
 	}
-	foundProperties, err := queries.GetPropertyByUserID(*p.ctx, pgtype.Int4{Int32: int32(user_id), Valid: true})
+	foundProperties, err := p.queries.GetPropertyByUserID(*p.ctx, pgtype.Int4{Int32: int32(user_id), Valid: true})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -175,7 +173,6 @@ func (p *PropertiesHanlder) GetByUserID(c *gin.Context) {
 }
 
 func (p *PropertiesHanlder) DeleteProperty(c *gin.Context) {
-	queries := postgres.New(p.conn)
 	s_id := c.Query("id")
 	id, err := strconv.Atoi(s_id)
 	if err != nil {
@@ -186,7 +183,7 @@ func (p *PropertiesHanlder) DeleteProperty(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required and can not be 0"})
 		return
 	}
-	deletedProperty, err := queries.DeleteProperty(*p.ctx, int64(id))
+	deletedProperty, err := p.queries.DeleteProperty(*p.ctx, int64(id))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "property with this id does not exsists"})
 		return
