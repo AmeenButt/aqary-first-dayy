@@ -1,1 +1,1 @@
-ALTER TABLE users ADD otp int;
+DROP TABLE kasdjkisa;

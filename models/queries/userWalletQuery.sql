@@ -21,7 +21,8 @@ RETURNING *;
 
 -- name: UpdateUserWalletAmount :exec
 UPDATE user_wallet
-  set amount = $2
+  set amount = $2,
+  updated_at = NOW()
   WHERE id = $1 RETURNING *;
 
 -- name: DeleteUserWallet :exec

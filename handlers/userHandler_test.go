@@ -36,7 +36,7 @@ func TestUserHandler(t *testing.T) {
 	createUserWalletRecorder := httptest.NewRecorder()
 
 	// Create an instance of CreateUserHandler with the temporary database connection
-	userHandler := &User{conn: conn}
+	userHandler := &UserHanlder{conn: conn}
 	userWalletHandler := &WalletHanlder{conn: conn}
 
 	// Set up the router with the CreateUserHandler methods
@@ -66,12 +66,12 @@ func TestUserHandler(t *testing.T) {
 
 	// CREATE WALLET API TESTING
 	var walletResponse *utils.ResponseBody
-	err = json.Unmarshal(signInUserRecorder.Body.Bytes(), &walletResponse)
+	_ = json.Unmarshal(signInUserRecorder.Body.Bytes(), &walletResponse)
 	utils.CreateWallet(&response, router, createUserWalletRecorder, t, walletResponse)
 
 	// DEPOSIT IN USER WALLET API TEST
 	var createWalletResponse *utils.CreateWalletResponse
-	err = json.Unmarshal(createUserWalletRecorder.Body.Bytes(), &createWalletResponse)
+	_ = json.Unmarshal(createUserWalletRecorder.Body.Bytes(), &createWalletResponse)
 	utils.DepositInWallet(&response, router, t, createWalletResponse)
 
 	// DEPOSIT IN USER WALLET API TEST
@@ -85,7 +85,7 @@ func TestUserHandler(t *testing.T) {
 
 }
 
-func Routes(router *gin.Engine, userHandler *User, userWalletHandler *WalletHanlder) {
+func Routes(router *gin.Engine, userHandler *UserHanlder, userWalletHandler *WalletHanlder) {
 	router.POST("/create", userHandler.CreateUser)
 	router.POST("/sign-in", userHandler.SignIn)
 	router.POST("/wallet/create", userWalletHandler.Create)
@@ -96,3 +96,4 @@ func Routes(router *gin.Engine, userHandler *User, userWalletHandler *WalletHanl
 	router.GET("/wallet/get-user-Transactions", userWalletHandler.GetUserTransactions)
 	router.GET("/wallet/get", userWalletHandler.GetWallet)
 }
+

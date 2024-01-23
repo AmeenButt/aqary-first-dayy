@@ -18,9 +18,9 @@ func TestRegisterUserRoutes(t *testing.T) {
 		panic(err)
 	}
 	defer conn.Close(context.Background())
-
+	ctx := context.Background()
 	router := gin.Default()
-	RegisterUserRoutes(router, conn)
+	RegisterUserRoutes(router, conn, &ctx)
 
 	// You can add assertions here to check if routes are correctly registered
 	assertRouteExists(t, router, "POST", "/users/create")
@@ -47,9 +47,9 @@ func TestUserRoutes(t *testing.T) {
 		panic(err)
 	}
 	defer conn.Close(context.Background())
-
+	ctx := context.Background()
 	router := gin.Default()
-	RegisterUserRoutes(router, conn)
+	RegisterUserRoutes(router, conn, &ctx)
 
 	// Replace the following with your actual test scenarios
 	testCases := []struct {

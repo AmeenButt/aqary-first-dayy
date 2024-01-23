@@ -190,7 +190,8 @@ func (q *Queries) ListUserWallets(ctx context.Context) ([]ListUserWalletsRow, er
 
 const updateUserWalletAmount = `-- name: UpdateUserWalletAmount :exec
 UPDATE user_wallet
-  set amount = $2
+  set amount = $2,
+  updated_at = NOW()
   WHERE id = $1 RETURNING id, user_id, amount, created_at, updated_at
 `
 

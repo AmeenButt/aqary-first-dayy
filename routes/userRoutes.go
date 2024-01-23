@@ -1,16 +1,18 @@
 package routes
 
 import (
+	"context"
+
 	"assesment.sqlc.dev/app/handlers"
 	"assesment.sqlc.dev/app/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 )
 
-func RegisterUserRoutes(router *gin.Engine, conn *pgx.Conn) {
+func RegisterUserRoutes(router *gin.Engine, conn *pgx.Conn, ctx *context.Context) {
 	server := router.Group("/users")
 	{
-		UserHanlder := handlers.CreateUserHanlder(conn)
+		UserHanlder := handlers.CreateUserHanlder(conn, ctx)
 		server.POST("/create", UserHanlder.CreateUser)
 		server.POST("/sign-in", UserHanlder.SignIn)
 		server.GET("/get", UserHanlder.GetUser)

@@ -13,22 +13,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Properties struct {
+type PropertiesHanlder struct {
 	conn *pgx.Conn
+	ctx  *context.Context
 }
 
-func GetPropertiesHandlers(conn *pgx.Conn) *Properties {
-	return &Properties{conn: conn}
+func GetPropertiesHandlers(conn *pgx.Conn, ctx *context.Context) *PropertiesHanlder {
+	return &PropertiesHanlder{conn: conn, ctx: ctx}
 }
 
-func (p *Properties) Add(c *gin.Context) {
+func (p *PropertiesHanlder) Add(c *gin.Context) {
 	queries := postgres.New(p.conn)
-	data := &models.InputProperty{}
+	data := &models.CreateProperty{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id, size_in_feet, location and demand are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	property, err := queries.InsertProperty(context.Background(), postgres.InsertPropertyParams{
+	property, err := queries.InsertProperty(*p.ctx, postgres.InsertPropertyParams{
 		Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
 		Location:     pgtype.Text{String: data.Location, Valid: true},
 		Demand:       pgtype.Text{String: data.Demand, Valid: true},
@@ -42,26 +43,88 @@ func (p *Properties) Add(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Property Added", "result": property})
 }
 
-func (p *Properties) Update(c *gin.Context) {
+func (p *PropertiesHanlder) Update(c *gin.Context) {
 	queries := postgres.New(p.conn)
-	data := &models.InputProperty{}
+	data := &models.UpdateProperty{}
+	var updatedProperty interface{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusNoContent, gin.H{"error": "No content found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	_, err := queries.GetPropertyByID(context.Background(), data.ID)
+	_, err := queries.GetPropertyByID(*p.ctx, data.ID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	updatedProperty, err := queries.UpdateProperty(context.Background(), postgres.UpdatePropertyParams{
-		ID:           data.ID,
-		Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
-		Location:     pgtype.Text{String: data.Location, Valid: true},
-		Status:       pgtype.Text{String: data.Status, Valid: true},
-		Images:       data.Images,
-		Demand:       pgtype.Text{String: data.Demand, Valid: true},
-	})
+	if data.Demand != "" {
+		updatedProperty, err = queries.UpdatePropertyDemand(*p.ctx, postgres.UpdatePropertyDemandParams{
+			ID:     data.ID,
+			Demand: pgtype.Text{String: data.Demand, Valid: true},
+		})
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+			return
+		}
+	}
+	if data.Location != "" {
+		updatedProperty, err = queries.UpdatePropertyLocation(*p.ctx, postgres.UpdatePropertyLocationParams{
+			ID:       data.ID,
+			Location: pgtype.Text{String: data.Location, Valid: true},
+		})
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+			return
+		}
+	}
+	if data.SizeInSqFeet != 0 {
+		updatedProperty, err = queries.UpdatePropertySize(*p.ctx, postgres.UpdatePropertySizeParams{
+			ID:           data.ID,
+			Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
+		})
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+			return
+		}
+	}
+	if data.SizeInSqFeet != 0 {
+		updatedProperty, err = queries.UpdatePropertySize(*p.ctx, postgres.UpdatePropertySizeParams{
+			ID:           data.ID,
+			Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
+		})
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+			return
+		}
+	}
+	if data.Images != nil {
+		updatedProperty, err = queries.UpdatePropertyImages(*p.ctx, postgres.UpdatePropertyImagesParams{
+			ID:     data.ID,
+			Images: data.Images,
+		})
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
+			return
+		}
+	}
+	if data.Status != "" {
+		updatedProperty, err = queries.UpdateStatus(*p.ctx, postgres.UpdateStatusParams{
+			ID:     data.ID,
+			Status: pgtype.Text{String: data.Status, Valid: true},
+		})
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": utils.GetErrorMessage(err)})
+			return
+		}
+	}
+
+	// updatedProperty, err := queries.UpdateProperty(*p.ctx, postgres.UpdatePropertyParams{
+	// 	ID:           data.ID,
+	// 	Sizeinsqfeet: pgtype.Int4{Int32: int32(data.SizeInSqFeet), Valid: true},
+	// 	Location:     pgtype.Text{String: data.Location, Valid: true},
+	// 	Status:       pgtype.Text{String: data.Status, Valid: true},
+	// 	Images:       data.Images,
+	// 	Demand:       pgtype.Text{String: data.Demand, Valid: true},
+	// })
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -69,25 +132,7 @@ func (p *Properties) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Property Updated", "result": updatedProperty})
 }
 
-func (p *Properties) UpdateStatus(c *gin.Context) {
-	queries := postgres.New(p.conn)
-	data := &models.Property{}
-	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "no content found"})
-		return
-	}
-	updatedData, err := queries.UpdateStatus(context.Background(), postgres.UpdateStatusParams{
-		ID:     data.ID,
-		Status: pgtype.Text{String: data.Status, Valid: true},
-	})
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": utils.GetErrorMessage(err)})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Property status updated", "result": updatedData})
-}
-
-func (p *Properties) GetByID(c *gin.Context) {
+func (p *PropertiesHanlder) GetByID(c *gin.Context) {
 	queries := postgres.New(p.conn)
 	s_id := c.Query("id")
 	id, err := strconv.Atoi(s_id)
@@ -99,7 +144,7 @@ func (p *Properties) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required and can not be 0"})
 		return
 	}
-	foundProperty, err := queries.GetPropertyByID(context.Background(), int64(id))
+	foundProperty, err := queries.GetPropertyByID(*p.ctx, int64(id))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -108,7 +153,7 @@ func (p *Properties) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Property Fetched", "result": result})
 }
 
-func (p *Properties) GetByUserID(c *gin.Context) {
+func (p *PropertiesHanlder) GetByUserID(c *gin.Context) {
 	queries := postgres.New(p.conn)
 	s_id := c.Query("user_id")
 	user_id, err := strconv.Atoi(s_id)
@@ -120,16 +165,16 @@ func (p *Properties) GetByUserID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required and can not be 0"})
 		return
 	}
-	foundProperties, err := queries.GetPropertyByUserID(context.Background(), pgtype.Int4{Int32: int32(user_id), Valid: true})
+	foundProperties, err := queries.GetPropertyByUserID(*p.ctx, pgtype.Int4{Int32: int32(user_id), Valid: true})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 	result := utils.ParsePropertyDataArray(foundProperties)
-	c.JSON(http.StatusOK, gin.H{"message": "Properties Fetched", "result": result})
+	c.JSON(http.StatusOK, gin.H{"message": "PropertiesHanlder Fetched", "result": result})
 }
 
-func (p *Properties) DeleteProperty(c *gin.Context) {
+func (p *PropertiesHanlder) DeleteProperty(c *gin.Context) {
 	queries := postgres.New(p.conn)
 	s_id := c.Query("id")
 	id, err := strconv.Atoi(s_id)
@@ -141,7 +186,7 @@ func (p *Properties) DeleteProperty(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required and can not be 0"})
 		return
 	}
-	deletedProperty, err := queries.DeleteProperty(context.Background(), int64(id))
+	deletedProperty, err := queries.DeleteProperty(*p.ctx, int64(id))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "property with this id does not exsists"})
 		return

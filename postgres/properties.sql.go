@@ -179,7 +179,8 @@ func (q *Queries) InsertProperty(ctx context.Context, arg InsertPropertyParams) 
 }
 
 const updateProperty = `-- name: UpdateProperty :one
-UPDATE properties SET sizeInSqFeet =$2 , location = $3 ,demand = $4 ,status=$5 , images=$6
+UPDATE properties SET sizeInSqFeet =$2 , location = $3 ,demand = $4 ,status=$5 , images=$6,
+  updated_at = NOW()
 WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
 `
 
@@ -216,8 +217,121 @@ func (q *Queries) UpdateProperty(ctx context.Context, arg UpdatePropertyParams) 
 	return i, err
 }
 
+const updatePropertyDemand = `-- name: UpdatePropertyDemand :one
+UPDATE properties SET demand =$2,
+  updated_at = NOW()
+WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
+`
+
+type UpdatePropertyDemandParams struct {
+	ID     int64
+	Demand pgtype.Text
+}
+
+func (q *Queries) UpdatePropertyDemand(ctx context.Context, arg UpdatePropertyDemandParams) (Property, error) {
+	row := q.db.QueryRow(ctx, updatePropertyDemand, arg.ID, arg.Demand)
+	var i Property
+	err := row.Scan(
+		&i.ID,
+		&i.Sizeinsqfeet,
+		&i.Location,
+		&i.Images,
+		&i.Demand,
+		&i.Status,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updatePropertyImages = `-- name: UpdatePropertyImages :one
+UPDATE properties SET images =$2,
+  updated_at = NOW()
+WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
+`
+
+type UpdatePropertyImagesParams struct {
+	ID     int64
+	Images []string
+}
+
+func (q *Queries) UpdatePropertyImages(ctx context.Context, arg UpdatePropertyImagesParams) (Property, error) {
+	row := q.db.QueryRow(ctx, updatePropertyImages, arg.ID, arg.Images)
+	var i Property
+	err := row.Scan(
+		&i.ID,
+		&i.Sizeinsqfeet,
+		&i.Location,
+		&i.Images,
+		&i.Demand,
+		&i.Status,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updatePropertyLocation = `-- name: UpdatePropertyLocation :one
+UPDATE properties SET location =$2,
+  updated_at = NOW()
+WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
+`
+
+type UpdatePropertyLocationParams struct {
+	ID       int64
+	Location pgtype.Text
+}
+
+func (q *Queries) UpdatePropertyLocation(ctx context.Context, arg UpdatePropertyLocationParams) (Property, error) {
+	row := q.db.QueryRow(ctx, updatePropertyLocation, arg.ID, arg.Location)
+	var i Property
+	err := row.Scan(
+		&i.ID,
+		&i.Sizeinsqfeet,
+		&i.Location,
+		&i.Images,
+		&i.Demand,
+		&i.Status,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updatePropertySize = `-- name: UpdatePropertySize :one
+UPDATE properties SET sizeInSqFeet =$2,
+  updated_at = NOW()
+WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
+`
+
+type UpdatePropertySizeParams struct {
+	ID           int64
+	Sizeinsqfeet pgtype.Int4
+}
+
+func (q *Queries) UpdatePropertySize(ctx context.Context, arg UpdatePropertySizeParams) (Property, error) {
+	row := q.db.QueryRow(ctx, updatePropertySize, arg.ID, arg.Sizeinsqfeet)
+	var i Property
+	err := row.Scan(
+		&i.ID,
+		&i.Sizeinsqfeet,
+		&i.Location,
+		&i.Images,
+		&i.Demand,
+		&i.Status,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateStatus = `-- name: UpdateStatus :one
-UPDATE properties SET status =$2  
+UPDATE properties SET status =$2  ,
+  updated_at = NOW()
 WHERE id=$1 RETURNING id, sizeinsqfeet, location, images, demand, status, user_id, created_at, updated_at
 `
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"assesment.sqlc.dev/app/models"
@@ -13,6 +14,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"gopkg.in/gomail.v2"
 )
 
 func UpdateWalletAmount(ID int32, Amount float64, queries *postgres.Queries) error {
@@ -22,6 +24,7 @@ func UpdateWalletAmount(ID int32, Amount float64, queries *postgres.Queries) err
 	})
 	return deductedAmount
 }
+
 func GenerateToken(userID int64) (string, error) {
 	// Set the secret key for signing the token
 	secretKey := []byte(os.Getenv("JWT_SECRET"))
@@ -40,6 +43,7 @@ func GenerateToken(userID int64) (string, error) {
 
 	return tokenString, nil
 }
+
 func ParseToken(tokenString string) (jwt.MapClaims, error) {
 	// Set the secret key for validating the token
 	secretKey := []byte(os.Getenv("JWT_SECRET"))
@@ -105,7 +109,8 @@ func ParseUserWalletData(foundWallet postgres.GetUserWalletRow) interface{} {
 	result.User.Password = foundWallet.Password.String
 	return result
 }
-func ParsePropertyData(property postgres.GetPropertyByIDRow) interface{} {
+
+func ParsePropertyData(property postgres.GetPropertyByIDRow) models.Property {
 	var result models.Property
 	result.ID = property.ID
 	result.SizeInSqFeet = int64(property.Sizeinsqfeet.Int32)
@@ -124,7 +129,8 @@ func ParsePropertyData(property postgres.GetPropertyByIDRow) interface{} {
 	result.User.CreatedAt = property.CreatedAt_2.Time.String()
 	return result
 }
-func ParsePropertyDataArray(property []postgres.GetPropertyByUserIDRow) interface{} {
+
+func ParsePropertyDataArray(property []postgres.GetPropertyByUserIDRow) []models.Property {
 	var finalResult []models.Property
 	for i := 0; i < len(property); i++ {
 		var result models.Property
@@ -147,10 +153,12 @@ func ParsePropertyDataArray(property []postgres.GetPropertyByUserIDRow) interfac
 	}
 	return finalResult
 }
+
 func GenerateRandomCode() int {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(999999-100000+1) + 100000
 }
+
 func GetErrorMessage(err error) string {
 	if err == nil {
 		return "No error"
@@ -163,4 +171,111 @@ func GetErrorMessage(err error) string {
 	default:
 		return fmt.Sprintf("Internal server error: %v", err)
 	}
+}
+
+func SendMail(email, subject, message string) error {
+	m := gomail.NewMessage()
+	m.SetHeader("From", os.Getenv("EMAIL_USERNAME"))
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/plain", message)
+
+	// Set up the email server connection information
+	d := gomail.NewDialer("smtp.gmail.com", 587, os.Getenv("EMAIL_USERNAME"), os.Getenv("EMAIL_PASSWORD"))
+
+	// Send the email
+	if err := d.DialAndSend(m); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func GetBindErrorMessage(err error) string {
+	inputString := err.Error()
+	errorString := ""
+	lines := strings.Split(inputString, "\n")
+	errors := []models.CustomError{}
+	// Split the field name by period to get the field name
+	errors = findError(lines, err, errors)
+	errorString = convertErrorArrayToString(errors, errorString)
+	return errorString
+}
+
+func findError(lines []string, err error, errors []models.CustomError) []models.CustomError {
+	for _, line := range lines {
+		var errorFor string
+		var errorMessage string
+		if strings.Contains(err.Error(), "unmarshal") {
+			keyParts := strings.Split(line, ".")
+			words := strings.Fields(keyParts[1])
+			errorFor = words[0]
+			errorMessage = "Invalid data type"
+			errors = append(errors, models.CustomError{
+				ErrorFor:     errorFor,
+				ErrorMessage: errorMessage,
+			})
+		} else {
+			keyParts := strings.Split(line, "'")
+
+			if len(keyParts) >= 2 {
+				fieldWithName := keyParts[1]
+
+				fieldParts := strings.Split(fieldWithName, ".")
+				if len(fieldParts) >= 2 {
+					errorFor = fieldParts[1]
+
+					if strings.Contains(line, "required") {
+						errorMessage = "Field is required"
+					} else {
+						errorMessage = "Incorrect type of field"
+					}
+
+					errors = append(errors, models.CustomError{
+						ErrorFor:     errorFor,
+						ErrorMessage: errorMessage,
+					})
+				} else {
+					fmt.Println("Field name not found in the input string.")
+					fmt.Println(err.Error())
+				}
+			} else {
+				fmt.Println("Field name not found in the input string.")
+				fmt.Println(err.Error())
+			}
+		}
+	}
+	return errors
+}
+
+func convertErrorArrayToString(errors []models.CustomError, errorString string) string {
+	foundRequired := 0
+	for _, customError := range errors {
+		if strings.Contains(customError.ErrorMessage, "required") {
+			foundRequired = foundRequired + 1
+			errorString = errorString + customError.ErrorFor + ", "
+		}
+	}
+	if foundRequired > 0 {
+		if foundRequired == 1 {
+			errorString = errorString + "is required"
+		} else {
+			errorString = errorString + "are required"
+		}
+	}
+	foundInvalid := false
+	for index, customError := range errors {
+		if strings.Contains(customError.ErrorMessage, "Invalid") {
+			foundInvalid = true
+			if index == 0 && foundRequired > 0 {
+				errorString = " and " + errorString + customError.ErrorFor + ","
+			} else {
+				errorString = errorString + customError.ErrorFor + ","
+			}
+		}
+	}
+	if foundInvalid {
+		errorString = errorString + " has invalid datatype"
+	}
+	return errorString
 }

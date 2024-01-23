@@ -24,3 +24,4 @@ func Config(ctx context.Context) *pgx.Conn {
 	// defer conn.Close(ctx)
 	return conn
 }
+

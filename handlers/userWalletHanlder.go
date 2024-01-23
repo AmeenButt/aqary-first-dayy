@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -16,38 +15,38 @@ import (
 
 type WalletHanlder struct {
 	conn *pgx.Conn
+	ctx  *context.Context
 }
 
-func CreateWalletHanlder(conn *pgx.Conn) *WalletHanlder {
-	return &WalletHanlder{conn: conn}
+func CreateWalletHanlder(conn *pgx.Conn, ctx *context.Context) *WalletHanlder {
+	return &WalletHanlder{conn: conn, ctx: ctx}
 }
 
 func (w *WalletHanlder) Create(c *gin.Context) {
 	queries := postgres.New(w.conn)
-	data := &models.InputUserWallet{}
+	data := &models.CreateUserWallet{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		fmt.Printf("%v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	_, err := queries.GetUserByID(context.Background(), int64(data.UserID))
+	_, err := queries.GetUserByID(*w.ctx, int64(data.UserID))
 	if err != nil {
-		fmt.Printf("%v", err)
+
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
-	_, err = queries.GetUserWallet(context.Background(), pgtype.Int4{Int32: data.UserID, Valid: true})
+	_, err = queries.GetUserWallet(*w.ctx, pgtype.Int4{Int32: data.UserID, Valid: true})
 	if err == nil {
-		fmt.Printf("%v", err)
+
 		c.JSON(http.StatusConflict, gin.H{"error": "User wallet already exsists"})
 		return
 	}
-	insertedWallet, err := queries.CreateUserWallet(context.Background(), postgres.CreateUserWalletParams{
+	insertedWallet, err := queries.CreateUserWallet(*w.ctx, postgres.CreateUserWalletParams{
 		UserID: pgtype.Int4{Int32: data.UserID, Valid: true},
 		Amount: pgtype.Float8{Float64: data.Amount, Valid: true},
 	})
 	if err != nil {
-		fmt.Printf("%v", err)
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
@@ -62,7 +61,7 @@ func (w *WalletHanlder) GetWallet(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
 		return
 	}
-	foundWallet, err := queries.GetUserWallet(context.Background(), pgtype.Int4{Int32: int32(user_id), Valid: true})
+	foundWallet, err := queries.GetUserWallet(*w.ctx, pgtype.Int4{Int32: int32(user_id), Valid: true})
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -72,7 +71,7 @@ func (w *WalletHanlder) GetWallet(c *gin.Context) {
 }
 
 func (w *WalletHanlder) Withdraw(c *gin.Context) {
-	tx, err := w.conn.Begin(context.Background())
+	tx, err := w.conn.Begin(*w.ctx)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error while starting a transaction"})
 		return
@@ -82,8 +81,7 @@ func (w *WalletHanlder) Withdraw(c *gin.Context) {
 	defer func() {
 		if err != nil {
 			// Rollback only if there was an error
-			if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
-				fmt.Printf("Error rolling back transaction: %v\n", rollbackErr)
+			if rollbackErr := tx.Rollback(*w.ctx); rollbackErr != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Error rolling back transaction"})
 				return
 			}
@@ -93,12 +91,12 @@ func (w *WalletHanlder) Withdraw(c *gin.Context) {
 	queries := postgres.New(w.conn)
 	data := &models.InputUserTransaction{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction_amount and user_wallet_id are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	userWallet, err := queries.GetUserWalletByID(context.Background(), int64(data.UserWalletID))
+	userWallet, err := queries.GetUserWalletByID(*w.ctx, int64(data.UserWalletID))
 	if err != nil {
-		fmt.Printf("%v", err)
+
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
@@ -114,22 +112,22 @@ func (w *WalletHanlder) Withdraw(c *gin.Context) {
 		return
 	}
 
-	_, err = queries.CreateUserTransaction(context.Background(), postgres.CreateUserTransactionParams{
+	_, err = queries.CreateUserTransaction(*w.ctx, postgres.CreateUserTransactionParams{
 		UserWalletID:      pgtype.Int4{Int32: data.UserWalletID, Valid: true},
 		TransactionAmount: pgtype.Float8{Float64: data.TransactionAmount, Valid: true},
 		Action:            "Withdraw",
 	})
 
 	if err != nil {
-		fmt.Printf("%v", err)
+
 		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": utils.GetErrorMessage(err)})
 		return
 	}
 
-	userWallet, err = queries.GetUserWalletByID(context.Background(), int64(data.UserWalletID))
+	userWallet, err = queries.GetUserWalletByID(*w.ctx, int64(data.UserWalletID))
 
 	// Commit the transaction explicitly
-	if err := tx.Commit(context.Background()); err != nil {
+	if err := tx.Commit(*w.ctx); err != nil {
 		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Error while committing transaction"})
 		return
 	}
@@ -138,7 +136,7 @@ func (w *WalletHanlder) Withdraw(c *gin.Context) {
 }
 
 func (w *WalletHanlder) Deposit(c *gin.Context) {
-	tx, err := w.conn.Begin(context.Background())
+	tx, err := w.conn.Begin(*w.ctx)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error while starting a transaction"})
 		return
@@ -148,8 +146,7 @@ func (w *WalletHanlder) Deposit(c *gin.Context) {
 	defer func() {
 		if err != nil {
 			// Rollback only if there was an error
-			if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
-				fmt.Printf("Error rolling back transaction: %v\n", rollbackErr)
+			if rollbackErr := tx.Rollback(*w.ctx); rollbackErr != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Error rolling back transaction"})
 				return
 			}
@@ -158,10 +155,10 @@ func (w *WalletHanlder) Deposit(c *gin.Context) {
 	queries := postgres.New(w.conn)
 	data := &models.InputUserTransaction{}
 	if err := c.ShouldBindJSON(data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction_amount and user_wallet_id are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": utils.GetBindErrorMessage(err)})
 		return
 	}
-	userWallet, err := queries.GetUserWalletByID(context.Background(), int64(data.UserWalletID))
+	userWallet, err := queries.GetUserWalletByID(*w.ctx, int64(data.UserWalletID))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return
@@ -170,7 +167,7 @@ func (w *WalletHanlder) Deposit(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occured while desposit"})
 		return
 	}
-	_, err = queries.CreateUserTransaction(context.Background(), postgres.CreateUserTransactionParams{
+	_, err = queries.CreateUserTransaction(*w.ctx, postgres.CreateUserTransactionParams{
 		UserWalletID:      pgtype.Int4{Int32: data.UserWalletID, Valid: true},
 		TransactionAmount: pgtype.Float8{Float64: data.TransactionAmount, Valid: true},
 		Action:            "Deposit",
@@ -181,9 +178,9 @@ func (w *WalletHanlder) Deposit(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while performing transaction"})
 		return
 	}
-	userWallet, err = queries.GetUserWalletByID(context.Background(), int64(data.UserWalletID))
+	userWallet, err = queries.GetUserWalletByID(*w.ctx, int64(data.UserWalletID))
 	// Commit the transaction explicitly
-	if err := tx.Commit(context.Background()); err != nil {
+	if err := tx.Commit(*w.ctx); err != nil {
 		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Error while committing transaction"})
 		return
 	}
@@ -198,7 +195,7 @@ func (w *WalletHanlder) GetUserTransactions(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
 		return
 	}
-	foundUserTransactions, err := queries.GetUserWalletTransactions(context.Background(), pgtype.Int4{Int32: int32(user_wallet_id), Valid: true})
+	foundUserTransactions, err := queries.GetUserWalletTransactions(*w.ctx, pgtype.Int4{Int32: int32(user_wallet_id), Valid: true})
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": utils.GetErrorMessage(err)})
 		return

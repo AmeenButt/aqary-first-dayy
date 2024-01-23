@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+
 	ctx := context.Background()
 
 	// Loading ENV file
@@ -33,13 +34,13 @@ func main() {
 	server.GET("/", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"Message": "Server is running"}) })
 
 	// User Routes
-	routes.RegisterUserRoutes(server, conn)
+	routes.RegisterUserRoutes(server, conn, &ctx)
 
 	// User wallet Routes
-	routes.RegisterUserWalletRoutes(server, conn)
+	routes.RegisterUserWalletRoutes(server, conn, &ctx)
 
 	// Property Route
-	routes.RegisterPropertiesRoutes(server, conn)
+	routes.RegisterPropertiesRoutes(server, conn, &ctx)
 
 	// Starting server
 	server.Run(os.Getenv("PORT"))
@@ -47,3 +48,4 @@ func main() {
 	// Close DB connection after job is done
 	defer conn.Close(ctx)
 }
+
