@@ -22,7 +22,7 @@ func TestUserHandler(t *testing.T) {
 	defer utils.CleanUp(conn)
 	// Create a Gin router
 	router := gin.New()
-
+	
 	// Create a request with JSON payload
 	createUserReq, signInUserReq, getUserReq, getAllUserReq, getUserTransactionsReq, getUserWalletReq, err := utils.CreateRequests(t)
 	if err != nil {
@@ -96,4 +96,3 @@ func Routes(router *gin.Engine, userHandler *UserHanlder, userWalletHandler *Wal
 	router.GET("/wallet/get-user-Transactions", userWalletHandler.GetUserTransactions)
 	router.GET("/wallet/get", userWalletHandler.GetWallet)
 }
-

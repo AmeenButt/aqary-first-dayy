@@ -11,13 +11,14 @@ import (
 
 	"assesment.sqlc.dev/app/models"
 	"assesment.sqlc.dev/app/postgres"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"gopkg.in/gomail.v2"
 )
 
-func UpdateWalletAmount(ID int32, Amount float64, queries *postgres.Queries) error {
+func UpdateWalletAmount(ID int32, Amount float64, queries postgres.Store) error {
 	deductedAmount := queries.UpdateUserWalletAmount(context.Background(), postgres.UpdateUserWalletAmountParams{
 		ID:     int64(ID),
 		Amount: pgtype.Float8{Float64: Amount, Valid: true},

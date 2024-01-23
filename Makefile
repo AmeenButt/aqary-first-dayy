@@ -10,3 +10,6 @@ run-docker:
 	docker-compose up --build
 sqlc:
 	sqlc generate
+
+mockgen:
+	mockgen -destination postgres/mock/store1.go assesment.sqlc.dev/app/postgres Store

@@ -21,9 +21,26 @@ func New(db DBTX) *Queries {
 	return &Queries{db: db}
 }
 
+func NewStore(db *pgx.Conn) Store {
+    return &SQLStore{
+        db:      db,
+        Queries: New(db),
+    }
+}
+
+type SQLStore struct {
+	db *pgx.Conn
+    *Queries
+}
+
+type Store interface {
+	Querier
+	WithTx(tx pgx.Tx) *Queries
+}
 type Queries struct {
 	db DBTX
 }
+
 
 func (q *Queries) WithTx(tx pgx.Tx) *Queries {
 	return &Queries{
